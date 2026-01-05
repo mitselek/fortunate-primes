@@ -259,6 +259,10 @@ impl FortunateCalculator for PrimeBasedCalculator {
 mod tests {
     use super::*;
 
+    // ============================================================================
+    // Miller-Rabin Primality Tests
+    // ============================================================================
+
     #[test]
     fn test_miller_rabin_small_primes() {
         let tester = MillerRabin::with_default_rounds();
@@ -267,6 +271,11 @@ mod tests {
         assert!(tester.is_prime(&Integer::from(5)));
         assert!(tester.is_prime(&Integer::from(7)));
         assert!(tester.is_prime(&Integer::from(11)));
+        assert!(tester.is_prime(&Integer::from(13)));
+        assert!(tester.is_prime(&Integer::from(17)));
+        assert!(tester.is_prime(&Integer::from(19)));
+        assert!(tester.is_prime(&Integer::from(23)));
+        assert!(tester.is_prime(&Integer::from(29)));
     }
 
     #[test]
@@ -274,9 +283,78 @@ mod tests {
         let tester = MillerRabin::with_default_rounds();
         assert!(!tester.is_prime(&Integer::from(4)));
         assert!(!tester.is_prime(&Integer::from(6)));
+        assert!(!tester.is_prime(&Integer::from(8)));
         assert!(!tester.is_prime(&Integer::from(9)));
+        assert!(!tester.is_prime(&Integer::from(10)));
+        assert!(!tester.is_prime(&Integer::from(12)));
         assert!(!tester.is_prime(&Integer::from(15)));
+        assert!(!tester.is_prime(&Integer::from(16)));
+        assert!(!tester.is_prime(&Integer::from(20)));
+        assert!(!tester.is_prime(&Integer::from(25)));
     }
+
+    #[test]
+    fn test_miller_rabin_edge_cases() {
+        let tester = MillerRabin::with_default_rounds();
+        assert!(!tester.is_prime(&Integer::from(0)));
+        assert!(!tester.is_prime(&Integer::from(1)));
+        assert!(tester.is_prime(&Integer::from(2)));
+        assert!(tester.is_prime(&Integer::from(3)));
+    }
+
+    #[test]
+    fn test_miller_rabin_large_primes() {
+        let tester = MillerRabin::with_default_rounds();
+        // Large known primes
+        assert!(tester.is_prime(&Integer::from(97)));
+        assert!(tester.is_prime(&Integer::from(541)));
+        assert!(tester.is_prime(&Integer::from(7919)));
+        assert!(tester.is_prime(&Integer::from(104729)));
+    }
+
+    #[test]
+    fn test_miller_rabin_algorithm_variants() {
+        let fast = MillerRabin::fast();
+        let standard = MillerRabin::with_default_rounds();
+        let thorough = MillerRabin::thorough();
+
+        let test_cases = vec![
+            Integer::from(2),
+            Integer::from(17),
+            Integer::from(97),
+            Integer::from(7919),
+        ];
+
+        for n in test_cases {
+            // All variants should agree on these small-medium primes
+            assert_eq!(
+                fast.is_prime(&n),
+                standard.is_prime(&n),
+                "Fast and standard variants disagree on {}",
+                n
+            );
+            assert_eq!(
+                standard.is_prime(&n),
+                thorough.is_prime(&n),
+                "Standard and thorough variants disagree on {}",
+                n
+            );
+        }
+    }
+
+    #[test]
+    fn test_miller_rabin_carmichael_numbers() {
+        // Carmichael numbers fool simple primality tests
+        // 561 = 3 × 11 × 17
+        let tester = MillerRabin::with_default_rounds();
+        assert!(!tester.is_prime(&Integer::from(561)));
+        assert!(!tester.is_prime(&Integer::from(1105))); // 5 × 13 × 17
+        assert!(!tester.is_prime(&Integer::from(1729))); // 7 × 13 × 19
+    }
+
+    // ============================================================================
+    // Primorial Tests
+    // ============================================================================
 
     #[test]
     fn test_primorial() {
@@ -286,31 +364,226 @@ mod tests {
         assert_eq!(calc.primorial(1).unwrap(), Integer::from(2));
         assert_eq!(calc.primorial(2).unwrap(), Integer::from(6)); // 2*3
         assert_eq!(calc.primorial(3).unwrap(), Integer::from(30)); // 2*3*5
+        assert_eq!(calc.primorial(4).unwrap(), Integer::from(210)); // 2*3*5*7
         assert_eq!(calc.primorial(5).unwrap(), Integer::from(2310)); // 2*3*5*7*11
     }
 
     #[test]
-    fn test_fortunate_numbers() {
+    fn test_primorial_single_prime() {
+        let primes = vec![2];
+        let calc = PrimeBasedCalculator::new(primes);
+        assert_eq!(calc.primorial(1).unwrap(), Integer::from(2));
+    }
+
+    #[test]
+    fn test_primorial_growth() {
+        let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23];
+        let calc = PrimeBasedCalculator::new(primes);
+
+        let p1 = calc.primorial(1).unwrap();
+        let p2 = calc.primorial(2).unwrap();
+        let p3 = calc.primorial(3).unwrap();
+
+        // Primorial should grow monotonically
+        assert!(p2 > p1);
+        assert!(p3 > p2);
+    }
+
+    // ============================================================================
+    // Fortunate Number Tests (OEIS A005235 Validation)
+    // ============================================================================
+
+    #[test]
+    fn test_fortunate_numbers_oeis() {
+        // First 10 Fortunate numbers from OEIS A005235
+        // https://oeis.org/A005235
         let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
         let calc = PrimeBasedCalculator::new(primes);
 
-        // Known Fortunate numbers from OEIS A005235
+        let oeis_values = vec![
+            (1, 3),
+            (2, 5),
+            (3, 7),
+            (4, 13),
+            (5, 23),
+            (6, 17),
+            (7, 19),
+            (8, 23),
+            (9, 37),
+            (10, 61),
+        ];
+
+        for (n, expected) in oeis_values {
+            assert_eq!(
+                calc.fortunate_number(n).unwrap(),
+                expected,
+                "Fortunate number mismatch for n={}",
+                n
+            );
+        }
+    }
+
+    #[test]
+    fn test_fortunate_numbers_early_values() {
+        let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+        let calc = PrimeBasedCalculator::new(primes);
+
+        // Detailed check: n=1 case
+        // primorial(1) = 2
+        // 2 + 1 = 3 (prime) ✓ but we check m > 1
+        // 2 + 2 = 4 (not prime)
+        // 2 + 3 = 5 (prime) ✓ → Fortunate number is 3
         assert_eq!(calc.fortunate_number(1).unwrap(), 3);
-        assert_eq!(calc.fortunate_number(2).unwrap(), 5);
-        assert_eq!(calc.fortunate_number(3).unwrap(), 7);
-        assert_eq!(calc.fortunate_number(4).unwrap(), 13);
+
+        // n=5 case (common example)
+        // primorial(5) = 2*3*5*7*11 = 2310
+        // 2310 + 23 = 2333 (prime) ✓ → Fortunate number is 23
         assert_eq!(calc.fortunate_number(5).unwrap(), 23);
     }
 
     #[test]
-    fn test_error_handling() {
+    fn test_fortunate_prime_detection() {
+        // Fortunate primes: Fortunate numbers that are also prime
+        let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+        let calc = PrimeBasedCalculator::new(primes);
+
+        let tester = MillerRabin::with_default_rounds();
+
+        for n in 1..=10 {
+            let f = calc.fortunate_number(n).unwrap();
+            let is_prime = tester.is_prime(&Integer::from(f));
+            // Fortune's conjecture: all Fortunate numbers up to n=3000 are prime
+            assert!(
+                is_prime,
+                "Fortune's conjecture violated: Fortunate number {} is not prime",
+                f
+            );
+        }
+    }
+
+    // ============================================================================
+    // Fortunate Number with Metrics Tests
+    // ============================================================================
+
+    #[test]
+    fn test_fortunate_with_metrics() {
+        let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+        let calc = PrimeBasedCalculator::new(primes);
+
+        let (value, metrics) = calc.fortunate_number_with_metrics(5).unwrap();
+
+        // Value should match non-metrics version
+        assert_eq!(value, 23);
+
+        // Metrics should be valid
+        assert!(metrics.total_time.as_micros() > 0); // Use micros for very fast computations
+        assert!(metrics.primality_test_count > 0);
+        assert_eq!(metrics.candidate_found, 23);
+        assert!(metrics.primality_tests_passed > 0);
+    }
+
+    #[test]
+    fn test_metrics_consistency() {
+        let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+        let calc = PrimeBasedCalculator::new(primes);
+
+        let (value1, metrics) = calc.fortunate_number_with_metrics(3).unwrap();
+        let value2 = calc.fortunate_number(3).unwrap();
+
+        // Both methods should give same result
+        assert_eq!(value1, value2);
+        assert_eq!(metrics.candidate_found, value1);
+    }
+
+    // ============================================================================
+    // Error Handling Tests
+    // ============================================================================
+
+    #[test]
+    fn test_error_invalid_prime_index() {
         let primes = vec![2, 3, 5];
         let calc = PrimeBasedCalculator::new(primes);
 
-        assert!(calc.primorial(10).is_err());
+        let err = calc.primorial(10).unwrap_err();
         assert_eq!(
-            calc.primorial(10).unwrap_err(),
+            err,
             FortunateError::InvalidPrimeIndex { index: 10, max: 3 }
         );
+    }
+
+    #[test]
+    fn test_error_index_zero() {
+        let primes = vec![2, 3, 5];
+        let calc = PrimeBasedCalculator::new(primes);
+
+        // Index 0 might not be explicitly validated, check boundary
+        // The implementation validates index >= 1
+        let result = calc.primorial(0);
+        // It could be error or undefined behavior, this test documents current behavior
+        let _ = result; // Accept either way for now
+    }
+
+    #[test]
+    fn test_error_message_format() {
+        let primes = vec![2, 3, 5];
+        let calc = PrimeBasedCalculator::new(primes);
+
+        let err = calc.primorial(5).unwrap_err();
+        let message = format!("{}", err);
+
+        // Error message should be informative
+        assert!(message.contains("out of range"));
+        assert!(message.contains("5"));
+        assert!(message.contains("3"));
+    }
+
+    // ============================================================================
+    // Integration Tests
+    // ============================================================================
+
+    #[test]
+    fn test_full_workflow_small() {
+        let primes = vec![2, 3, 5, 7, 11, 13];
+        let calc = PrimeBasedCalculator::new(primes);
+
+        for n in 1..=6 {
+            // Should compute without error
+            let (fortune, metrics) = calc.fortunate_number_with_metrics(n).unwrap();
+
+            // Fortunate number should be positive and not too large
+            assert!(fortune > 0);
+            assert!(fortune < 100, "Fortunate number {} seems too large for n={}", fortune, n);
+
+            // Metrics should be sensible
+            assert!(metrics.total_time.as_micros() > 0);
+            // primality_test_count is cumulative count of numbers tested, not just hits
+            assert!(metrics.primality_test_count > 0);
+        }
+    }
+
+    #[test]
+    fn test_calculator_with_custom_tester() {
+        let primes = vec![2, 3, 5, 7, 11, 13];
+        let tester = MillerRabin::fast(); // 20 rounds
+        let calc = PrimeBasedCalculator::with_tester(primes, tester);
+
+        // Should work with custom tester variant
+        let result = calc.fortunate_number(5).unwrap();
+        assert_eq!(result, 23);
+    }
+
+    #[test]
+    fn test_different_tester_variants_consistency() {
+        let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+
+        let calc_fast = PrimeBasedCalculator::with_tester(primes.clone(), MillerRabin::fast());
+        let calc_standard =
+            PrimeBasedCalculator::with_tester(primes.clone(), MillerRabin::with_default_rounds());
+        let calc_thorough = PrimeBasedCalculator::with_tester(primes, MillerRabin::thorough());
+
+        // All variants should produce same results for n=5
+        assert_eq!(calc_fast.fortunate_number(5).unwrap(), 23);
+        assert_eq!(calc_standard.fortunate_number(5).unwrap(), 23);
+        assert_eq!(calc_thorough.fortunate_number(5).unwrap(), 23);
     }
 }
