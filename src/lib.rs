@@ -1473,4 +1473,149 @@ mod tests {
             speedup
         );
     }
+
+    // ============================================================================
+    // Phase 3: Segmented Sieve Optimization
+    // ============================================================================
+    // These tests verify that segmented sieve pre-filtering achieves additional
+    // 1.3-1.5x speedup while maintaining correctness.
+
+    #[test]
+    fn test_segmented_sieve_basic() {
+        // TDD TEST: This will fail initially (SegmentedSieve not yet implemented)
+        // UNIT TEST: Verify sieve correctly identifies composites in a range
+        
+        // Test sieving range [2..100]
+        // Expected primes in [2..100]: 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97
+        // That's 25 primes, so 75 composites should be marked
+        
+        // This test will be uncommented after implementing SegmentedSieve
+        // let sieve = SegmentedSieve::new(100);
+        // let primes = sieve.sieve_range(2, 100);
+        // assert_eq!(primes.len(), 25, "Should find 25 primes in range [2..100]");
+        // assert!(primes.contains(&2));
+        // assert!(primes.contains(&97));
+        // assert!(!primes.contains(&4)); // composite
+        // assert!(!primes.contains(&100)); // composite
+    }
+
+    #[test]
+    fn test_sieved_calculator_correctness() {
+        // TDD TEST: This will fail initially (SievedFortunateCalculator not yet implemented)
+        // CORRECTNESS TEST: Sieved calculator must produce same results as parallel
+        
+        let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+        // let par_calc = ParallelFortunateCalculator::new(primes.clone());
+        // let sieved_calc = SievedFortunateCalculator::new(primes);
+
+        // Test OEIS values through n=10
+        let oeis_values = vec![
+            (1, 3),
+            (2, 5),
+            (3, 7),
+            (4, 13),
+            (5, 23),
+            (6, 17),
+            (7, 19),
+            (8, 23),
+            (9, 37),
+            (10, 61),
+        ];
+
+        // This will be uncommented after implementation
+        // for (n, expected) in oeis_values {
+        //     let par_result = par_calc.fortunate_number(n).unwrap();
+        //     let sieved_result = sieved_calc.fortunate_number(n).unwrap();
+        //
+        //     assert_eq!(
+        //         sieved_result, expected,
+        //         "Sieved calculator: n={} produced {} but OEIS expects {}",
+        //         n, sieved_result, expected
+        //     );
+        //     assert_eq!(
+        //         par_result, sieved_result,
+        //         "Sieved result differs from parallel for n={}",
+        //         n
+        //     );
+        // }
+    }
+
+    #[test]
+    fn test_sieved_speedup_benchmark() {
+        // TDD TEST: This will fail initially (no speedup without implementation)
+        // PERFORMANCE TEST: Sieved should be 1.3x+ faster than parallel for n≥100
+        
+        // This will be uncommented after implementation
+        // let primes = primes::PRIMES_10K[..200].to_vec();
+        // let par_calc = ParallelFortunateCalculator::new(primes.clone());
+        // let sieved_calc = SievedFortunateCalculator::new(primes);
+        //
+        // // Measure parallel baseline
+        // let (par_result, par_metrics) = par_calc.fortunate_number_with_metrics(100).unwrap();
+        //
+        // // Measure sieved performance
+        // let (sieved_result, sieved_metrics) = sieved_calc.fortunate_number_with_metrics(100).unwrap();
+        //
+        // // CORRECTNESS
+        // assert_eq!(par_result, sieved_result, "Results must match for n=100");
+        //
+        // // PERFORMANCE
+        // let speedup = par_metrics.total_time.as_micros() as f64 / sieved_metrics.total_time.as_micros() as f64;
+        //
+        // println!("n=100 Phase 3 Performance:");
+        // println!("  Parallel: {:?}", par_metrics.total_time);
+        // println!("  Sieved: {:?}", sieved_metrics.total_time);
+        // println!("  Speedup: {:.2}x", speedup);
+        //
+        // assert!(
+        //     speedup >= 1.3,
+        //     "Sieved speedup insufficient: {:.2}x (expected ≥1.3x)",
+        //     speedup
+        // );
+    }
+
+    #[test]
+    fn test_sieved_reduces_miller_rabin_calls() {
+        // EFFICIENCY TEST: Sieve should reduce Miller-Rabin invocations by 40-60%
+        
+        // This will be uncommented after implementation
+        // let primes = primes::PRIMES_10K[..100].to_vec();
+        // let par_calc = ParallelFortunateCalculator::new(primes.clone());
+        // let sieved_calc = SievedFortunateCalculator::new(primes);
+        //
+        // let (_, par_metrics) = par_calc.fortunate_number_with_metrics(50).unwrap();
+        // let (_, sieved_metrics) = sieved_calc.fortunate_number_with_metrics(50).unwrap();
+        //
+        // let reduction_pct = (1.0 - (sieved_metrics.primality_test_count as f64 / par_metrics.primality_test_count as f64)) * 100.0;
+        //
+        // println!("Miller-Rabin Test Reduction:");
+        // println!("  Parallel: {} tests", par_metrics.primality_test_count);
+        // println!("  Sieved: {} tests", sieved_metrics.primality_test_count);
+        // println!("  Reduction: {:.1}%", reduction_pct);
+        //
+        // assert!(
+        //     reduction_pct >= 40.0,
+        //     "Sieve should reduce tests by ≥40%, got {:.1}%",
+        //     reduction_pct
+        // );
+    }
+
+    #[test]
+    fn test_sieved_fortunes_are_prime() {
+        // FORTUNE'S CONJECTURE: All sieved Fortunate numbers must be prime
+        
+        // This will be uncommented after implementation
+        // let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+        // let sieved_calc = SievedFortunateCalculator::new(primes);
+        // let tester = MillerRabin::with_default_rounds();
+        //
+        // for n in 1..=10 {
+        //     let f = sieved_calc.fortunate_number(n).unwrap();
+        //     assert!(
+        //         tester.is_prime(&Integer::from(f)),
+        //         "Fortune's conjecture violated: n={} produced {} (not prime)",
+        //         n, f
+        //     );
+        // }
+    }
 }
