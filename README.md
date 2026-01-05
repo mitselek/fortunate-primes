@@ -301,21 +301,27 @@ Track speedup ratio:
 Want to contribute? **Read this first:**
 
 ### For Contributors (Start Here)
+
 👉 **[CONTRIBUTING.md](CONTRIBUTING.md)** — Complete workflow guide (5-10 minutes)
+
 - TDD workflow
 - Quality gates
 - PR checklist
 - Common patterns
 
 ### For Detailed Architecture
+
 👉 **[DEVELOPMENT.md](DEVELOPMENT.md)** — In-depth guide (30 minutes)
+
 - Project architecture
 - Feature request strategy
 - Testing patterns
 - Design discussion template
 
 ### For AI Agents
+
 👉 **[SYSTEM_PROMPT.md](SYSTEM_PROMPT.md)** — System instructions for development
+
 - Guiding principles
 - Workflow validation
 - Red flags and scenarios
