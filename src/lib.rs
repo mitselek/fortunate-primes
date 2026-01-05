@@ -1294,4 +1294,131 @@ mod tests {
         // Wheel should test fewer candidates than standard (2-3x fewer)
         assert!(metrics.primality_test_count > 0);
     }
+
+    // ============================================================================
+    // Phase 2: Parallel Candidate Testing (Rayon)
+    // ============================================================================
+    // These tests verify that parallel candidate testing with Rayon achieves
+    // significant speedup (2-4x) while maintaining correctness.
+
+    #[test]
+    fn test_parallel_speedup_benchmark() {
+        // TDD TEST: This test should FAIL initially, then PASS after Rayon implementation
+        // PERFORMANCE TEST: Parallel should be 2x+ faster than wheel for n>100
+        
+        // Use larger prime set to test n=100
+        let primes = primes::PRIMES_10K[..200].to_vec();
+        
+        let wheel_calc = WheelFortunateCalculator::new(primes.clone());
+        let par_calc = ParallelFortunateCalculator::new(primes);
+
+        // Measure wheel factorization time (baseline)
+        let (wheel_result, wheel_metrics) = wheel_calc.fortunate_number_with_metrics(100).unwrap();
+        
+        // Measure parallel time (should be faster)
+        let (par_result, par_metrics) = par_calc.fortunate_number_with_metrics(100).unwrap();
+
+        // CORRECTNESS: Both should find the same Fortunate number
+        assert_eq!(
+            wheel_result, par_result,
+            "Parallel and wheel results must match for n=100"
+        );
+
+        // PERFORMANCE: Parallel should be significantly faster
+        // Expected: wheel ~30-40ms, parallel ~15-20ms (2x+ speedup)
+        let wheel_time_us = wheel_metrics.total_time.as_micros();
+        let par_time_us = par_metrics.total_time.as_micros();
+        let speedup = wheel_time_us as f64 / par_time_us as f64;
+
+        println!("n=100 Performance:");
+        println!("  Wheel: {:?}", wheel_metrics.total_time);
+        println!("  Parallel: {:?}", par_metrics.total_time);
+        println!("  Speedup: {:.2}x", speedup);
+
+        // This assertion will FAIL initially (speedup ~1.0x)
+        // After Rayon implementation, speedup should be 1.5x-2.0x minimum
+        assert!(
+            speedup >= 1.5,
+            "Parallel speedup insufficient: {:.2}x (expected ≥1.5x)",
+            speedup
+        );
+    }
+
+    #[test]
+    fn test_parallel_correctness_with_rayon() {
+        // CORRECTNESS TEST: Parallel with Rayon must still find the SMALLEST Fortunate number
+        let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+        let seq_calc = PrimeBasedCalculator::new(primes.clone());
+        let par_calc = ParallelFortunateCalculator::new(primes);
+
+        // Test OEIS values through n=10
+        let oeis_values = vec![
+            (1, 3), (2, 5), (3, 7), (4, 13), (5, 23),
+            (6, 17), (7, 19), (8, 23), (9, 37), (10, 61),
+        ];
+
+        for (n, expected) in oeis_values {
+            let seq_result = seq_calc.fortunate_number(n).unwrap();
+            let par_result = par_calc.fortunate_number(n).unwrap();
+
+            assert_eq!(
+                par_result, expected,
+                "Parallel with Rayon: n={} produced {} but OEIS expects {}",
+                n, par_result, expected
+            );
+            assert_eq!(
+                seq_result, par_result,
+                "Parallel result differs from sequential for n={}",
+                n
+            );
+        }
+    }
+
+    #[test]
+    fn test_parallel_thread_safety() {
+        // SAFETY TEST: Parallel execution must be thread-safe
+        let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31];
+        let par_calc = ParallelFortunateCalculator::new(primes);
+
+        // Run multiple calculations concurrently
+        // If thread-unsafe, results would be inconsistent
+        let results: Vec<_> = (1..=11)
+            .map(|n| par_calc.fortunate_number(n).unwrap())
+            .collect();
+
+        // Expected OEIS A005235 values for n=1..11
+        let expected = vec![3, 5, 7, 13, 23, 17, 19, 23, 37, 61, 67];
+
+        assert_eq!(results, expected, "Parallel thread safety violated");
+    }
+
+    #[test]
+    fn test_parallel_large_n_speedup() {
+        // PERFORMANCE TEST: Verify speedup increases with larger n
+        // For n=200, parallel should be 2-3x faster than wheel
+        
+        let primes = primes::PRIMES_10K[..300].to_vec();
+        let wheel_calc = WheelFortunateCalculator::new(primes.clone());
+        let par_calc = ParallelFortunateCalculator::new(primes);
+
+        let (wheel_result, wheel_metrics) = wheel_calc.fortunate_number_with_metrics(200).unwrap();
+        let (par_result, par_metrics) = par_calc.fortunate_number_with_metrics(200).unwrap();
+
+        // CORRECTNESS
+        assert_eq!(wheel_result, par_result, "Results must match for n=200");
+
+        // PERFORMANCE (this will fail initially)
+        let speedup = wheel_metrics.total_time.as_secs_f64() / par_metrics.total_time.as_secs_f64();
+        
+        println!("n=200 Performance:");
+        println!("  Wheel: {:?}", wheel_metrics.total_time);
+        println!("  Parallel: {:?}", par_metrics.total_time);
+        println!("  Speedup: {:.2}x", speedup);
+
+        assert!(
+            speedup >= 2.0,
+            "Parallel speedup insufficient at n=200: {:.2}x (expected ≥2.0x)",
+            speedup
+        );
+    }
 }
