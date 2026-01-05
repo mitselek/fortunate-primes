@@ -15,6 +15,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.2] - 2026-01-05
+
+### Phase 4: Code Refactoring & Modularization (Phase 2)
+
+#### Refactoring
+
+- **Extract wheel factorization**: New `src/wheel.rs` module
+  - Moved `WheelFactorization` struct and wheel iterator implementation
+  - Moved `WheelFortunateCalculator` struct and trait implementations
+  - Includes 8 unit tests for wheel factorization correctness
+  - Size: ~230 lines (extracted from lib.rs)
+
+- **Update lib.rs module structure**
+  - Add `pub mod wheel;` declaration
+  - Re-export wheel types: `pub use wheel::WheelFortunateCalculator;`
+  - Maintain backward-compatible public API (no breaking changes)
+
+#### Impact
+
+- **Code organization**: Further reduced lib.rs (1,715 → ~1,485 lines after Phase 2)
+- **Separation of concerns**: Wheel factorization now isolated from core calculators
+- **Maintainability**: Easier to navigate and modify wheel optimization logic
+- **Testing**: 8 comprehensive wheel tests colocated with implementation
+
+#### Quality
+
+- ✅ All 45 tests pass (8 wheel tests in new module)
+- ✅ No breaking changes to public API
+- ✅ Zero logic changes (mechanical refactoring only)
+
+---
+
 ## [0.4.1] - 2026-01-05
 
 ### Phase 4: Code Refactoring & Modularization (Phase 1)
