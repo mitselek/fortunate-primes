@@ -16,7 +16,7 @@ As of 2017, all known Fortunate numbers up to n=3000 have been prime (Fortune's 
 
 ## Features
 
-✓ **10,000 primes** hardcoded (supports n up to 1224)
+✓ **10,000 primes** hardcoded (supports n up to 10,000)
 ✓ **Wheel Factorization** — 40-50% speedup via candidate pre-filtering (Phase 1.2)
 ✓ **Parallel Candidate Testing** — 2-3x speedup using Rayon multi-core execution (Phase 2)
 ✓ **Timing instrumentation** — measure primorial calculation & primality testing

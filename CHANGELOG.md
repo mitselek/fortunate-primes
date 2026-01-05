@@ -11,7 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - GPU acceleration exploration
 - Batch processing for multiple n values
-- Extended prime list (beyond current 1,224 primes)
+
+---
+
+## [0.5.1] - 2026-01-05
+
+### Enhancement
+
+- **Extended prime cache**: PRIMES_10K now contains actual 10,000 primes (up to 104,729)
+  - Previous: 1,224 primes (incorrectly named, only supported n ≤ 1,224)
+  - Current: 10,000 primes (correctly named, supports n ≤ 10,000)
+  - File size: 70 KB (up from 7.5 KB)
+  - Zero performance impact (array access is O(1), bottleneck is primorial/Miller-Rabin)
+  - Enables calculation of Fortunate numbers up to n=10,000 vs previous limit of n=1,224
+  - Updated documentation to reflect correct prime cache limit
 
 ---
 
@@ -22,8 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Refactoring
 
 - **Extract calculator implementations**: New `src/calculators/` submodule structure
+
   - Created `src/calculators/base.rs` - PrimeBasedCalculator implementation
-  - Created `src/calculators/parallel.rs` - ParallelFortunateCalculator implementation  
+  - Created `src/calculators/parallel.rs` - ParallelFortunateCalculator implementation
   - Created `src/calculators/sieved.rs` - SievedFortunateCalculator implementation
   - Created `src/calculators/mod.rs` - Module organization with public re-exports
   - Each calculator module includes its own tests (62 total tests across all modules)
@@ -51,14 +65,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Cumulative Phase 4 Progress
 
-| Metric | Before Phase 1 | After Phase 3 | Total Reduction |
-|--------|----------------|---------------|-----------------|
-| lib.rs lines | 1,900 | 784 | -59% |
-| Module count | 3 | 9 | +200% |
-| Test count | 45 | 62 | +38% |
+| Metric       | Before Phase 1 | After Phase 3 | Total Reduction |
+| ------------ | -------------- | ------------- | --------------- |
+| lib.rs lines | 1,900          | 784           | -59%            |
+| Module count | 3              | 9             | +200%           |
+| Test count   | 45             | 62            | +38%            |
 
 **Module structure**:
-```
+
+```text
 src/
 ├── lib.rs (784 lines) - Core traits, error handling, re-exports
 ├── primality.rs (83 lines) - Miller-Rabin primality testing
@@ -81,6 +96,7 @@ src/
 #### Refactoring
 
 - **Extract wheel factorization**: New `src/wheel.rs` module
+
   - Moved `WheelFactorization` struct and wheel iterator implementation
   - Moved `WheelFortunateCalculator` struct and trait implementations
   - Includes 8 unit tests for wheel factorization correctness
@@ -116,8 +132,8 @@ src/
   - Moved `MillerRabin` struct and `impl PrimalityTest`
   - Includes 6 unit tests for primality algorithm
   - Size: 83 lines (extracted from lib.rs)
-  
 - **Extract sieve algorithm**: New `src/sieve.rs` module
+
   - Moved `SegmentedSieve` struct and implementations
   - Includes 1 unit test for sieve correctness
   - Size: 101 lines (extracted from lib.rs)
