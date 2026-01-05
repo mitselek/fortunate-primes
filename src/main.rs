@@ -1,9 +1,13 @@
-use fortunate_primes::{primes, FortunateCalculator, MillerRabin, PrimeBasedCalculator};
+use fortunate_primes::{
+    primes, FortunateCalculator, MillerRabin, PrimeBasedCalculator, WheelFortunateCalculator,
+};
 use std::io::{self, Write};
 
 fn main() {
     println!("╔════════════════════════════════════════════════════════════╗");
     println!("║     Fortunate Primes Calculator - Performance Testing      ║");
+    println!("║                                                            ║");
+    println!("║   Phase 1 Optimizations: Parallel & Wheel Factorization    ║");
     println!("╚════════════════════════════════════════════════════════════╝\n");
 
     let prime_list = primes::get_primes();
@@ -108,8 +112,8 @@ fn benchmark_algorithms(primes: &[u32]) {
     match input.trim().parse::<usize>() {
         Ok(n) if n > 0 && n <= primes.len() => {
             let algorithms = vec![
-                ("Fast (20 rounds)", MillerRabin::fast()),
                 ("Standard (40 rounds)", MillerRabin::with_default_rounds()),
+                ("Fast (20 rounds)", MillerRabin::fast()),
                 ("Thorough (64 rounds)", MillerRabin::thorough()),
             ];
 
@@ -118,13 +122,37 @@ fn benchmark_algorithms(primes: &[u32]) {
                 n
             );
 
-            for (name, tester) in algorithms {
-                let mut calc = PrimeBasedCalculator::with_tester(primes.to_vec(), tester);
+            println!("│ STANDARD IMPLEMENTATION                              │");
+            for (name, tester) in &algorithms {
+                let mut calc = PrimeBasedCalculator::with_tester(primes.to_vec(), tester.clone());
                 calc.set_max_candidate(1000000);
 
                 match calc.fortunate_number_with_metrics(n) {
                     Ok((f, metrics)) => {
                         println!("│ {} ─────────────────────────────────────────", name);
+                        println!("│   Result: {}                  ", f);
+                        println!("│   Time: {:?}          ", metrics.total_time);
+                        println!(
+                            "│   Tests: {}/{}               ",
+                            metrics.primality_tests_passed, metrics.primality_test_count
+                        );
+                    }
+                    Err(e) => {
+                        println!("│ {} ERROR: {}", name, e);
+                    }
+                }
+            }
+
+            println!("│                                                    │");
+            println!("│ WHEEL FACTORIZATION OPTIMIZED                     │");
+            for (name, tester) in &algorithms {
+                let mut calc =
+                    WheelFortunateCalculator::with_tester(primes.to_vec(), tester.clone());
+                calc.set_max_candidate(1000000);
+
+                match calc.fortunate_number_with_metrics(n) {
+                    Ok((f, metrics)) => {
+                        println!("│ {} (wheel)  ─────────────────────────────", name);
                         println!("│   Result: {}                  ", f);
                         println!("│   Time: {:?}          ", metrics.total_time);
                         println!(
