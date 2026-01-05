@@ -1,7 +1,6 @@
 use rug::Integer;
 use std::fmt;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 // Rayon is imported and available for future parallel optimizations (Phase 1.2+)
 #[allow(unused_imports)]
 use rayon::prelude::*;
@@ -11,6 +10,7 @@ pub mod primality;
 pub mod sieve;
 pub mod wheel;
 pub mod calculators;
+pub mod hybrid;
 
 // Re-export extracted types for backward compatibility
 pub use primality::MillerRabin;
