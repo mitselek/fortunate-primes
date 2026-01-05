@@ -128,6 +128,39 @@ cargo build --release
 
 ## Architecture
 
+### Module Organization (Phase 4 Refactoring - v0.4.1)
+
+The codebase is organized into focused modules for maintainability and reusability:
+
+```
+src/
+├── main.rs              # CLI entry point
+├── lib.rs               # Core traits, error types, calculator implementations
+├── primality.rs         # Miller-Rabin primality testing (83 lines)
+├── sieve.rs             # Segmented Sieve of Eratosthenes (101 lines)
+└── primes.rs            # Pre-computed prime constants (10,000 primes)
+```
+
+**Module Responsibilities:**
+
+- **primality.rs**: `MillerRabin` struct implementing `PrimalityTest` trait
+  - Configurable rounds (fast: 20, standard: 40, thorough: 64)
+  - Deterministic witnesses: [2,3,5,7,11,13,17,19,23,29,31,37]
+  - Zero dependencies (rug::Integer only)
+  
+- **sieve.rs**: `SegmentedSieve` struct for pre-filtering composites
+  - `simple_sieve(limit)` — Generate basis primes
+  - `sieve_range(low, high)` — Sieve candidate range
+  - Reduces Miller-Rabin invocations by ~80%
+  - Zero external dependencies (std only)
+
+- **lib.rs**: Core traits, error handling, four calculator implementations
+  - Trait definitions: `PrimalityTest`, `FortunateCalculator`
+  - Error types: `FortunateError`, `Result<T>`
+  - Metrics tracking: primorial time, test count, total time
+  - Implementations: `PrimeBasedCalculator`, `ParallelFortunateCalculator`, `WheelFortunateCalculator`, `SievedFortunateCalculator`
+  - Public re-exports: `pub use primality::MillerRabin;`, `pub use sieve::SegmentedSieve;`
+
 ### Traits (Type-Safe Interfaces)
 
 ```rust
