@@ -132,7 +132,7 @@ cargo build --release
 
 The codebase is organized into focused modules for maintainability and reusability:
 
-```
+```text
 src/
 ├── main.rs              # CLI entry point
 ├── lib.rs               # Core traits, error types, calculator implementations

@@ -15,6 +15,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.3] - 2026-01-05
+
+### Phase 4: Code Refactoring & Modularization (Phase 3)
+
+#### Refactoring
+
+- **Extract calculator implementations**: New `src/calculators/` submodule structure
+  - Created `src/calculators/base.rs` - PrimeBasedCalculator implementation
+  - Created `src/calculators/parallel.rs` - ParallelFortunateCalculator implementation  
+  - Created `src/calculators/sieved.rs` - SievedFortunateCalculator implementation
+  - Created `src/calculators/mod.rs` - Module organization with public re-exports
+  - Each calculator module includes its own tests (62 total tests across all modules)
+
+- **Update lib.rs module structure**
+  - Added `pub mod calculators;` declaration
+  - Re-export calculator types for backward compatibility
+  - Removed ~720 lines of calculator implementation code
+  - lib.rs reduced from 1,502 → 784 lines (-48%)
+
+#### Impact Analysis
+
+- **Code organization**: Clear separation of calculator implementations into focused modules
+- **Maintainability**: Each calculator independently testable with colocated tests
+- **Module boundaries**: Clean dependencies (calculators depend on core traits in lib.rs)
+- **Testing**: All 62 tests passing (45 original + 17 calculator-specific tests)
+- **API compatibility**: Zero breaking changes via public re-exports
+
+#### Quality Verification
+
+- ✅ 62/62 tests passing (100% test preservation)
+- ✅ Zero compilation warnings
+- ✅ Backward compatible (re-exports maintain public API)
+- ✅ Code formatted (`cargo fmt` clean)
+
+#### Cumulative Phase 4 Progress
+
+| Metric | Before Phase 1 | After Phase 3 | Total Reduction |
+|--------|----------------|---------------|-----------------|
+| lib.rs lines | 1,900 | 784 | -59% |
+| Module count | 3 | 9 | +200% |
+| Test count | 45 | 62 | +38% |
+
+**Module structure**:
+```
+src/
+├── lib.rs (784 lines) - Core traits, error handling, re-exports
+├── primality.rs (83 lines) - Miller-Rabin primality testing
+├── sieve.rs (101 lines) - Segmented Sieve algorithm
+├── wheel.rs (213 lines) - Wheel factorization optimization
+├── calculators/
+│   ├── mod.rs - Module organization
+│   ├── base.rs - PrimeBasedCalculator (sequential baseline)
+│   ├── parallel.rs - ParallelFortunateCalculator (Rayon parallelization)
+│   └── sieved.rs - SievedFortunateCalculator (sieve + parallel)
+└── primes.rs - Pre-computed 10,000 primes
+```
+
+---
+
 ## [0.4.2] - 2026-01-05
 
 ### Phase 4: Code Refactoring & Modularization (Phase 2)
