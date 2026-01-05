@@ -291,3 +291,35 @@ Track speedup ratio:
 - **Phase 1 goal:** 4-8x faster
 - **Phase 2 goal:** 8-16x faster total
 - **Phase 3 goal:** 80-160x faster with GPU
+
+## Contributing
+
+Want to contribute? **Read this first:**
+
+### Quick Start
+
+1. **[Feature Request Strategy](DEVELOPMENT.md#feature-request-strategy)** — Issue-first, design discussion, TDD
+2. **[Acceptance Criteria](DEVELOPMENT.md#acceptance-criteria)** — What makes a PR mergeable?
+3. **[Example Workflow](DEVELOPMENT.md#example-adding-lucas-lehmer-test)** — See a feature addition from start to merge
+
+### 8-Step Process
+
+1. **Create issue** with clear description
+2. **Discuss design** (critical for algorithms)
+3. **Create feature branch** (`feature/N-description`)
+4. **Write test first** (TDD)
+5. **Implement** and make test pass
+6. **Quality gates**: `cargo fmt`, `cargo clippy`, `cargo test`
+7. **Benchmark**: `./benchmark.sh` (no regressions)
+8. **Merge & tag** (bump version, update CHANGELOG)
+
+### Key Rules
+
+- ✅ **OEIS validation** — Fortune's conjecture must hold
+- ✅ **Benchmark proof** — Optimizations show >5% improvement
+- ✅ **No regressions** — All tests pass, benchmarks don't slow down
+- ❌ **No shortcuts** — TDD is mandatory, not optional
+
+### Questions?
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for complete details, architecture, and decision-making guidance.
