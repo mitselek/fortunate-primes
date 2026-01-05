@@ -7,11 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned (Phase 4+)
+### Planned (Phase 5+)
 
 - GPU acceleration exploration
 - Batch processing for multiple n values
 - Extended prime list (beyond current 1,224 primes)
+
+---
+
+## [0.4.1] - 2026-01-05
+
+### Phase 4: Code Refactoring & Modularization (Phase 1)
+
+#### Refactoring
+
+- **Extract primality testing**: New `src/primality.rs` module
+  - Moved `MillerRabin` struct and `impl PrimalityTest`
+  - Includes 6 unit tests for primality algorithm
+  - Size: 83 lines (extracted from lib.rs)
+  
+- **Extract sieve algorithm**: New `src/sieve.rs` module
+  - Moved `SegmentedSieve` struct and implementations
+  - Includes 1 unit test for sieve correctness
+  - Size: 101 lines (extracted from lib.rs)
+
+- **Update lib.rs module structure**
+  - Add `pub mod primality;` and `pub mod sieve;` declarations
+  - Re-export extracted types: `pub use MillerRabin; pub use SegmentedSieve;`
+  - Maintain backward-compatible public API (no breaking changes)
+
+#### Impact
+
+- **Code organization**: Reduced lib.rs by ~185 lines (1,900 → 1,715 lines)
+- **Single responsibility**: Each module now focuses on specific concern
+- **Testability**: Tests colocated with implementations
+- **Maintainability**: Easier to locate and modify specific algorithms
+- **Reusability**: Primality module and sieve can be used independently
+
+#### Quality
+
+- ✅ All 45 tests pass (7 unit tests from extracted modules)
+- ✅ No breaking changes to public API
+- ✅ Zero logic changes (mechanical refactoring only)
+- ✅ Code formatted and linting clean
+
+#### Architecture Notes
+
+- **Traits remain in lib.rs**: `PrimalityTest` and `FortunateCalculator` are core abstractions
+- **Module dependencies**: Calculators use extracted modules through trait bounds
+- **Test location**: Each module includes its own `#[cfg(test)]` tests
+- **Phase 2 planning**: Wheel and calculator modules ready for future extraction
 
 ---
 
