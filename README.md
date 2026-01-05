@@ -4,7 +4,7 @@ A high-performance Rust tool to calculate Fortunate numbers beyond n=3000, with 
 
 ## What are Fortunate Numbers?
 
-A **Fortunate number** is the smallest integer $m > 1$ such that $p_n\# + m$ is prime, where $p_n\#$ is the primorial (product of the first $n$ primes).
+A **Fortunate number** is the smallest integer m > 1 such that p_n# + m is prime, where p_n# is the primorial (product of the first n primes).
 
 A **Fortunate prime** is a Fortunate number that is also itself prime.
 
