@@ -329,6 +329,210 @@ We follow **TDD-first** development. When adding code:
 
 **Golden Rule**: No optimization is correct if tests don't pass. No optimization is good if benchmarks regress.
 
+## Feature Request Strategy
+
+### 1. **Issue First, Code Second**
+
+Before starting any work:
+
+```bash
+# Create GitHub Issue with:
+# - Title: Clear, concise description
+# - Body: What? Why? Expected behavior?
+# - Labels: enhancement, optimization, bug, etc.
+```
+
+**Why?** Catches design problems early. Prevents wasted effort on rejected ideas.
+
+### 2. **Design Discussion** (Critical for Math-Heavy Work)
+
+For algorithmic features, discuss first:
+
+- **Current approach**: "We use Miller-Rabin with N rounds"
+- **Proposed change**: "Add Lucas-Lehmer primality test"
+- **Expected benefit**: "2x speedup for certain inputs"
+- **Risk analysis**: "Changes core primality logic, needs comprehensive tests"
+- **Validation plan**: "Test against OEIS A005235, benchmark n=100-300"
+
+Example comment in issue:
+
+```
+## Design Proposal
+
+### Current
+- Miller-Rabin: O(k * log^3 n) where k = rounds
+
+### Proposed
+- Hybrid: Miller-Rabin for small n, Lucas-Lehmer for larger n
+- Expected: 1.5-2x speedup on n > 200
+
+### Risk
+- Changes proven algorithm
+- Mitigation: Comprehensive tests + regression benchmarks
+
+### Acceptance Criteria
+- ✓ All existing tests pass
+- ✓ OEIS validation through n=100
+- ✓ Benchmark shows speedup on target range
+- ✓ README updated with new algorithm details
+```
+
+### 3. **Feature Branch Workflow**
+
+```bash
+# Create issue first (e.g., #12)
+git checkout -b feature/12-lucas-lehmer-test
+# or: git checkout -b feat/lucas-lehmer
+
+# Work in isolation
+cargo test  # After each meaningful change
+./benchmark.sh  # Before merging back
+
+# When ready: Create pull request linking issue
+# "Closes #12: Add Lucas-Lehmer primality test"
+```
+
+### 4. **Acceptance Criteria Template**
+
+Before merging, every feature must satisfy:
+
+**Correctness**:
+
+- ✓ All unit tests pass (existing + new)
+- ✓ OEIS A005235 validation through highest n tested
+- ✓ No regression on benchmark suite
+
+**Code Quality**:
+
+- ✓ `cargo fmt` passes
+- ✓ `cargo clippy` clean (no warnings)
+- ✓ Code follows existing patterns
+
+**Documentation**:
+
+- ✓ README updated (features section, benchmarks if changed)
+- ✓ DEVELOPMENT.md updated if approach changed
+- ✓ Code comments for complex algorithms
+- ✓ Changelog entry (see below)
+
+**Performance**:
+
+- ✓ Benchmark numbers documented
+- ✓ No regression on slower inputs
+- ✓ Improvement validated with `make bench`
+
+### 5. **Versioning & Changelog**
+
+**Semantic Versioning** (MAJOR.MINOR.PATCH):
+
+```
+X.Y.Z
+│ │ └─ Patch: Bug fixes, internal refactors
+│ └──── Minor: New features, non-breaking changes
+└────── Major: Breaking changes, algorithm rewrites
+```
+
+**Update on each merge**:
+
+1. Increment version in [Cargo.toml](Cargo.toml)
+2. Add entry to bottom of README (sample below)
+3. Commit: `bump: v1.0.0 → v1.1.0`
+
+**CHANGELOG.md** template (to create):
+
+```markdown
+# Changelog
+
+## [1.1.0] - 2026-01-15
+
+### Added
+
+- Lucas-Lehmer primality test (hybrid approach)
+- Algorithm selection in CLI menu
+
+### Changed
+
+- Benchmark suite now tests n=100-500
+
+### Fixed
+
+- Integer overflow in primorial calculation for n > 50
+
+---
+
+## [1.0.0] - 2026-01-05
+
+### Added
+
+- Initial release: Miller-Rabin tester + CLI
+```
+
+### 6. **Review Checklist** (Before Merge)
+
+Ask yourself:
+
+- [ ] Does this solve the stated problem?
+- [ ] Are all tests passing?
+- [ ] Did benchmarks improve or stay same (not regress)?
+- [ ] Is this the simplest correct solution?
+- [ ] Would Fortune's conjecture (n up to 3000) still hold?
+- [ ] Can someone understand this 6 months from now?
+- [ ] Did I validate against OEIS?
+
+### 7. **Common Feature Categories**
+
+**Type: Optimization**
+
+- Measure baseline: `./benchmark.sh > baseline.txt`
+- Implement with tests
+- Measure after: `./benchmark.sh > after.txt`
+- Compare: `diff baseline.txt after.txt`
+- Accept only if improvement ≥ expected
+
+**Type: Algorithm Addition**
+
+- Design discussion (see Lucas-Lehmer example)
+- Tests against known values (OEIS)
+- Comparison benchmarks (new vs. existing)
+- Update README comparison table
+
+**Type: Bug Fix**
+
+- Create failing test first
+- Fix implementation
+- Test passes
+- Check no regression on others
+
+### 8. **Issue Labels**
+
+Use these to organize:
+
+- `enhancement` — New feature
+- `optimization` — Speed/memory improvement
+- `bug` — Broken behavior
+- `docs` — Documentation only
+- `blocked` — Waiting on something
+- `phase-1`, `phase-2`, `phase-3` — Roadmap stages
+- `good-first-issue` — Newcomer-friendly
+
+### 9. **When to Reject Features**
+
+Say "no" (politely) if:
+
+- ❌ Breaks existing tests
+- ❌ Causes benchmarks to regress >5%
+- ❌ Changes core algorithm without proof it's better
+- ❌ Adds complexity with unclear benefit
+- ❌ Violates Fortune's conjecture validation
+
+Say "yes" if:
+
+- ✅ Solves real problem
+- ✅ Has acceptance criteria
+- ✅ Tests prove correctness
+- ✅ Benchmarks prove improvement
+- ✅ Design is sound
+
 ## License
 
 Part of the mitselek project repository.
