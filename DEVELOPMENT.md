@@ -158,18 +158,18 @@ make help        # Show all targets
 
 1. Create a new struct implementing `PrimalityTest`:
 
-    ```rust
-    pub struct LucasPrimalityTest;
+   ```rust
+   pub struct LucasPrimalityTest;
 
-    impl PrimalityTest for LucasPrimalityTest {
-        fn is_prime(&self, n: &Integer) -> bool {
-            // Implementation
-        }
-        fn name(&self) -> &'static str {
-            "Lucas"
-        }
-    }
-    ```
+   impl PrimalityTest for LucasPrimalityTest {
+       fn is_prime(&self, n: &Integer) -> bool {
+           // Implementation
+       }
+       fn name(&self) -> &'static str {
+           "Lucas"
+       }
+   }
+   ```
 
 2. Add to the calculator options in `main.rs`
 3. Add tests to `lib.rs`
@@ -264,6 +264,7 @@ fn test_fortunate_numbers() { ... }
 ```
 
 **Validate against known values**:
+
 - OEIS sequence [A005235](https://oeis.org/A005235) (Fortunate numbers)
 - Known Fortunate primes: n=5→23, n=100→641, n=200→1619
 
@@ -285,10 +286,10 @@ fn test_parallel_speedup() {
     // Before parallelization, this establishes baseline
     let calc = PrimeBasedCalculator::new(primes.clone());
     let (result, metrics) = calc.fortunate_number_with_metrics(300).unwrap();
-    
+
     // Assert correctness first
     assert_eq!(result, 5641);
-    
+
     // After parallelization, result must stay same but metrics change
     // This ensures we don't trade correctness for speed
 }
