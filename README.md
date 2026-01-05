@@ -2,8 +2,8 @@
 
 A high-performance Rust tool to calculate Fortunate numbers beyond n=3000, with **benchmarking** and **performance analysis** capabilities.
 
-**Contributing?** → Read [CONTRIBUTING.md](CONTRIBUTING.md) first (5-minute guide to the workflow)  
-**Detailed workflow?** → See [DEVELOPMENT.md](DEVELOPMENT.md) (architecture, strategy, examples)  
+**Contributing?** → Read [CONTRIBUTING.md](CONTRIBUTING.md) first (5-minute guide to the workflow)
+**Detailed workflow?** → See [DEVELOPMENT.md](DEVELOPMENT.md) (architecture, strategy, examples)
 **Want to contribute code?** → Check [SYSTEM_PROMPT.md](SYSTEM_PROMPT.md) (for AI agents)
 
 ## What are Fortunate Numbers?
@@ -16,13 +16,13 @@ As of 2017, all known Fortunate numbers up to n=3000 have been prime (Fortune's 
 
 ## Features
 
-✓ **10,000 primes** hardcoded (supports n up to 1224)  
-✓ **Wheel Factorization** — 40-50% speedup via candidate pre-filtering (Phase 1.2)  
-✓ **Parallel Infrastructure** — Ready for Rayon parallelization (Phase 1.3+)  
-✓ **Timing instrumentation** — measure primorial calculation & primality testing  
-✓ **Multiple algorithms** — Compare Fast (20 rounds), Standard (40 rounds), Thorough (64 rounds)  
-✓ **Interactive CLI** — Find single values or run benchmarks comparing optimizations  
-✓ **Type-safe architecture** — Traits, error handling, zero runtime type errors  
+✓ **10,000 primes** hardcoded (supports n up to 1224)
+✓ **Wheel Factorization** — 40-50% speedup via candidate pre-filtering (Phase 1.2)
+✓ **Parallel Infrastructure** — Ready for Rayon parallelization (Phase 1.3+)
+✓ **Timing instrumentation** — measure primorial calculation & primality testing
+✓ **Multiple algorithms** — Compare Fast (20 rounds), Standard (40 rounds), Thorough (64 rounds)
+✓ **Interactive CLI** — Find single values or run benchmarks comparing optimizations
+✓ **Type-safe architecture** — Traits, error handling, zero runtime type errors
 ✓ **TDD-First development** — 35 unit tests, integration tests, OEIS A005235 validation
 
 ## Testing & Quality
@@ -155,7 +155,7 @@ let result = (2..=max_candidate)
     .find_any(|m| is_prime(&(p_n_sharp.clone() + m)));
 ```
 
-**Expected impact:** n=400 from 30s → 4-8s (CPU-bound, scales with cores)  
+**Expected impact:** n=400 from 30s → 4-8s (CPU-bound, scales with cores)
 **Implementation effort:** Low (Rayon handles threading)
 
 ## Optimization Roadmap
@@ -194,8 +194,8 @@ let result = wheel.candidates_up_to(max)
     .find_any(|m| is_prime(&(p_n_sharp.clone() + m)));
 ```
 
-**Expected impact:** Linear scaling with CPU cores (2-8 cores → 2-4x speedup)  
-**Implementation effort:** Medium (Integer cloning overhead manageable)  
+**Expected impact:** Linear scaling with CPU cores (2-8 cores → 2-4x speedup)
+**Implementation effort:** Medium (Integer cloning overhead manageable)
 **Validation:** Test equivalence guaranteed by existing 35 tests
 
 #### 2.2 **Segmented Sieve for Candidates** (Expected: 1.5x speedup)
@@ -222,15 +222,8 @@ fn sieve_candidates(max: u32) -> Vec<bool> {
 - **GPU Acceleration**: CUDA for Miller-Rabin on large n
 - **Batch Processing**: Optimize for multiple n values simultaneously
 - **Extended Prime List**: Generate primorials beyond n=1224 via segmented sieve
-  for j in (i\*i..=max).step_by(i as usize) {
-  is_prime[j as usize] = false;
-  }
-  }
-  }
-  is_prime
-  }
 
-````
+### Phase 2.2 Details: Segmented Sieve
 
 **Expected impact:** Test sieved candidates first, massive speedup on partial matches
 **Implementation effort:** Medium
@@ -247,10 +240,10 @@ fn sieve_candidates(max: u32) -> Vec<bool> {
 fn batch_is_prime(candidates: &[Integer], rounds: usize) -> Vec<bool> {
     // ... compute common witness bases once, apply to all
 }
-````
+```
 
-**Expected impact:** Cache effects, ~20% faster Miller-Rabin loop  
-**Implementation effort:** High (complex modular arithmetic)  
+**Expected impact:** Cache effects, ~20% faster Miller-Rabin loop
+**Implementation effort:** High (complex modular arithmetic)
 **Risk:** Moderate (easy to introduce bugs in witness scheduling)
 
 ### 5. **Lucas Primality Test + Miller-Rabin Hybrid** (MEDIUM PRIORITY - Expected: 1.3x speedup)
@@ -273,8 +266,8 @@ fn is_prime_hybrid(n: &Integer) -> bool {
 }
 ```
 
-**Expected impact:** Fewer false positives, potentially fewer rounds needed  
-**Implementation effort:** High (Lucas test is complex)  
+**Expected impact:** Fewer false positives, potentially fewer rounds needed
+**Implementation effort:** High (Lucas test is complex)
 **Risk:** Moderate (need proven witness parameters)
 
 ### 6. **GPU-Accelerated Primality Testing** (ADVANCED - Expected: 10-100x speedup)
@@ -289,8 +282,8 @@ GPU: Test 1000 candidates in parallel
 vs CPU: Test 1 candidate at a time
 ```
 
-**Expected impact:** n=400 from 30s → 1-3s (if GPU available)  
-**Implementation effort:** Very High (GPU programming, memory management)  
+**Expected impact:** n=400 from 30s → 1-3s (if GPU available)
+**Implementation effort:** Very High (GPU programming, memory management)
 **Risk:** High (GPU availability, portability issues)
 
 ---

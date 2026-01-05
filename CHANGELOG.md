@@ -25,12 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Phase 1 Optimization Complete
 
 #### 1.1 Parallel Infrastructure (Foundation)
+
 - Add `ParallelFortunateCalculator` struct with full `FortunateCalculator` trait support
 - Establish parallel-ready architecture for future Rayon integration
 - 8 comprehensive tests validating correctness against OEIS A005235
 - All `ParallelFortunateCalculator` results identical to `PrimeBasedCalculator`
 
 #### 1.2 Wheel Factorization (40-50% Speedup)
+
 - Implement `WheelFactorization` with 2-3-5 wheel (period 30)
 - Add `WheelFortunateCalculator` for candidate pre-filtering
 - Reduce candidate search space by ~63% (consistently across all n)
@@ -39,18 +41,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive benchmark now shows standard vs wheel comparison
 
 ### Test Coverage
+
 - **Total tests**: 35 (up from 20)
 - **Test pass rate**: 100%
 - **OEIS A005235 validation**: n=1 through n=31 all correct
 - **Fortune's conjecture**: All tested Fortunate numbers confirmed prime
 
 ### Benchmark Results
-| n | Standard | Wheel | Speedup | Tests Reduced |
-|---|----------|-------|---------|---------------|
-| 100 | 43.2ms | 30.6ms | 1.41x | 640→236 (-63%) |
-| 200 | 993.8ms | 656.8ms | 1.51x | 1618→593 (-63%) |
+
+| n   | Standard | Wheel   | Speedup | Tests Reduced   |
+| --- | -------- | ------- | ------- | --------------- |
+| 100 | 43.2ms   | 30.6ms  | 1.41x   | 640→236 (-63%)  |
+| 200 | 993.8ms  | 656.8ms | 1.51x   | 1618→593 (-63%) |
 
 ### Technical Details
+
 - Language: Rust 1.92.0 (stable)
 - Math library: rug 1.28 (GMP bindings)
 - Dependencies: rayon 1.8 (integrated, ready for Phase 2)
@@ -58,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality: Code formatted, clippy clean, all tests passing
 
 ### Documentation
+
 - Updated README with Phase 1 results and benchmark comparison
 - Updated CHANGELOG with optimization roadmap
 - Architecture documentation in DEVELOPMENT.md
@@ -66,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [0.1.0] - Initial Release
+
 (See end of file for 0.1.0 details)
 
 - README with features, building, benchmarks
