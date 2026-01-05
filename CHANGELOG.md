@@ -7,16 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned (Phase 2)
-
-- Parallel candidate testing with Rayon (expected 2-4x speedup)
-- Segmented sieve optimization for probable prime pre-filtering (expected 1.5x)
-
 ### Planned (Phase 3)
 
+- Segmented sieve optimization for probable prime pre-filtering (expected 1.5x)
 - GPU acceleration exploration
 - Batch processing for multiple n values
 - Extended prime list (beyond current 1,224 primes)
+
+---
+
+## [0.3.0] - 2026-01-05
+
+### Phase 2: Parallel Candidate Testing with Rayon
+
+#### Added
+
+- **Rayon Parallel Execution**: Implemented batch-based parallel candidate testing in `ParallelFortunateCalculator`
+  - Processes candidates in parallel batches (batch size: 100)
+  - Uses Rayon's `par_iter()` + `find_any()` for multi-core execution
+  - Sequential verification within batch ensures SMALLEST Fortunate number found
+- **4 New Tests**: Added comprehensive parallel testing suite
+  - `test_parallel_speedup_benchmark`: Validates ≥1.5x speedup at n=100
+  - `test_parallel_correctness_with_rayon`: Validates OEIS A005235 equivalence
+  - `test_parallel_thread_safety`: Ensures thread-safe concurrent execution
+  - `test_parallel_large_n_speedup`: Validates ≥2x speedup at n=200
+- **Atomic Metrics Tracking**: Thread-safe counters for primality test metrics
+
+#### Performance
+
+- **n=100**: 35.9ms → 19.1ms (**1.87x speedup** over wheel, **2.26x vs original**)
+- **n=200**: 675ms → 235ms (**2.87x speedup** over wheel, **4.23x vs original**)
+- Achieved target 2-4x speedup for larger n values
+- Speedup increases with problem size (parallelism benefits grow with n)
+
+#### Test Coverage
+
+- **Total tests**: 39 (up from 35)
+- **Test pass rate**: 100%
+- **OEIS A005235 validation**: All parallel results match sequential (n=1 through n=31)
+- **Fortune's conjecture**: All tested Fortunate numbers confirmed prime
+- **Thread safety**: Concurrent execution produces consistent results
+
+### Notes
+
+Phase 2 completes the parallel optimization path. Combined with Phase 1 wheel factorization,
+we've achieved cumulative 2-4x speedup through algorithmic improvements and multi-core execution.
 
 ---
 
