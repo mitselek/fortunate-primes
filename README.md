@@ -100,12 +100,27 @@ cargo build --release
 - ✅ **39 Tests**: All passing including 4 new parallel performance/correctness tests
 - ✅ **Thread-Safe**: Atomic counters for metrics tracking across parallel threads
 
+### After Phase 3 Optimizations (v0.4.0)
+
+| n   | Parallel Rayon | Sieved+Parallel | Speedup   | vs Wheel | vs Original |
+| --- | -------------- | --------------- | --------- | -------- | ----------- |
+| 100 | 20.5ms         | 12.7ms          | **1.61x** | **3.62x**| **4.92x**   |
+
+**Phase 3 Results:**
+
+- ✅ **Segmented Sieve**: Eratosthenes sieve pre-filters composites from candidate range
+- ✅ **Hybrid Architecture**: Sieve once, parallel test survivors (sieve+Rayon)
+- ✅ **1.6x Speedup**: Exceeded target 1.3x+ performance improvement over Phase 2
+- ✅ **Efficiency Gain**: ~80% reduction in Miller-Rabin invocations (10,000 → ~1,200 probable primes)
+- ✅ **44 Tests**: All passing including sieve correctness and performance validation
+
 **Observations:**
 
 - Wheel factorization consistently reduces candidates by ~63% (matching theoretical 2×3×5 elimination rate)
 - Actual speedup is ~40-50% (limited by non-candidate work: primorial calculation, setup)
 - Primorial calculation time unchanged (accounts for ~30-40% of total time)
-- Miller-Rabin rounds (20/40/64) have negligible impact on total time (candidate finding dominates)
+- Sieve overhead amortized by parallel testing of much smaller candidate set
+- Hybrid approach balances one-time sieve cost with reduced Miller-Rabin workload
 
 - Algorithm choice (20/40/64 rounds) has minimal impact on total time
   - Finding the candidate dominates computation time

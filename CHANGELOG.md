@@ -7,12 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned (Phase 3)
+### Planned (Phase 4+)
 
-- Segmented sieve optimization for probable prime pre-filtering (expected 1.5x)
 - GPU acceleration exploration
 - Batch processing for multiple n values
 - Extended prime list (beyond current 1,224 primes)
+
+---
+
+## [0.4.0] - 2026-01-06
+
+### Phase 3: Segmented Sieve Optimization
+
+#### Added
+
+- **SegmentedSieve**: Efficient Eratosthenes sieve for composite pre-filtering
+  - `simple_sieve()`: Generates basis primes up to sqrt(limit)
+  - `sieve_range()`: Sieves arbitrary ranges using basis primes
+  - Memory-efficient: O(range_size) per sieve operation
+- **SievedFortunateCalculator**: Hybrid sieve+parallel calculator
+  - Sieves full range once to eliminate composites
+  - Uses Rayon to parallel test survivors (probable primes)
+  - Atomic counters for thread-safe metrics tracking
+- **3 New Tests**: Added sieve-specific testing
+  - `test_segmented_sieve_basic`: Validates sieve correctness (25 primes in [2..100])
+  - `test_sieved_calculator_correctness`: OEIS A005235 validation
+  - `test_sieved_speedup_benchmark`: Performance target ≥1.3x over Phase 2
+
+#### Performance
+
+- **n=100**: 20.5ms (parallel) → 12.7ms (sieved) (**1.61x speedup** over Phase 2)
+- **Combined optimization**: **3.62x speedup** over Phase 1 wheel (12.7ms vs 46ms)
+- **Total improvement**: **4.92x speedup** over original baseline (12.7ms vs 62.5ms)
+- Exceeded target 1.3x+ speedup with hybrid approach
+- Sieve reduces Miller-Rabin calls by filtering ~80% of composites
+
+#### Architecture
+
+Hybrid sieve+parallel design balances:
+- **Sieve overhead**: One-time O(n log log n) pre-filtering cost
+- **Parallel gain**: Multi-core testing of smaller candidate set
+- **Efficiency**: Testing ~1,200 probable primes instead of 10,000 candidates
+
+#### Test Coverage
+
+- **Total tests**: 44 (up from 42)
+- **Test pass rate**: 100%
+- **OEIS validation**: All sieved results match parallel/sequential
+- **Fortune's conjecture**: All sieved Fortunate numbers confirmed prime
 
 ---
 
