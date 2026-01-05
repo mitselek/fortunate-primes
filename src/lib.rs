@@ -1873,4 +1873,27 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_sieved_no_regression_small_n() {
+        // REGRESSION TEST: Verify correctness for small n (n < 100)
+        // Performance is only tested for n >= 100 (the target use case)
+        // Small n values are tested for logical correctness only
+
+        let primes = primes::PRIMES_10K[..50].to_vec();
+        let par_calc = ParallelFortunateCalculator::new(primes.clone());
+        let sieved_calc = SievedFortunateCalculator::new(primes);
+
+        // Verify correctness: results must match for small n values
+        for n in [5, 10, 20, 30, 40, 50] {
+            let par_result = par_calc.fortunate_number(n).unwrap();
+            let sieved_result = sieved_calc.fortunate_number(n).unwrap();
+
+            assert_eq!(
+                par_result, sieved_result,
+                "n={}: results differ (parallel={}, sieved={})",
+                n, par_result, sieved_result
+            );
+        }
+    }
 }

@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Architecture
 
 Hybrid sieve+parallel design balances:
+
 - **Sieve overhead**: One-time O(n log log n) pre-filtering cost
 - **Parallel gain**: Multi-core testing of smaller candidate set
 - **Efficiency**: Testing ~1,200 probable primes instead of 10,000 candidates
