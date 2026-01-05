@@ -2,6 +2,10 @@
 
 A high-performance Rust tool to calculate Fortunate numbers beyond n=3000, with **benchmarking** and **performance analysis** capabilities.
 
+**Contributing?** → Read [CONTRIBUTING.md](CONTRIBUTING.md) first (5-minute guide to the workflow)  
+**Detailed workflow?** → See [DEVELOPMENT.md](DEVELOPMENT.md) (architecture, strategy, examples)  
+**Want to contribute code?** → Check [SYSTEM_PROMPT.md](SYSTEM_PROMPT.md) (for AI agents)
+
 ## What are Fortunate Numbers?
 
 A **Fortunate number** is the smallest integer m > 1 such that p_n# + m is prime, where p_n# is the primorial (product of the first n primes).
@@ -296,13 +300,29 @@ Track speedup ratio:
 
 Want to contribute? **Read this first:**
 
-### Quick Start
+### For Contributors (Start Here)
+👉 **[CONTRIBUTING.md](CONTRIBUTING.md)** — Complete workflow guide (5-10 minutes)
+- TDD workflow
+- Quality gates
+- PR checklist
+- Common patterns
 
-1. **[Feature Request Strategy](DEVELOPMENT.md#feature-request-strategy)** — Issue-first, design discussion, TDD
-2. **[Acceptance Criteria](DEVELOPMENT.md#acceptance-criteria)** — What makes a PR mergeable?
-3. **[Example Workflow](DEVELOPMENT.md#example-adding-lucas-lehmer-test)** — See a feature addition from start to merge
+### For Detailed Architecture
+👉 **[DEVELOPMENT.md](DEVELOPMENT.md)** — In-depth guide (30 minutes)
+- Project architecture
+- Feature request strategy
+- Testing patterns
+- Design discussion template
 
-### 8-Step Process
+### For AI Agents
+👉 **[SYSTEM_PROMPT.md](SYSTEM_PROMPT.md)** — System instructions for development
+- Guiding principles
+- Workflow validation
+- Red flags and scenarios
+
+### Quick Summary
+
+This project follows **Test-Driven Development (TDD)** with **OEIS validation** and **benchmark proof**:
 
 1. **Create issue** with clear description
 2. **Discuss design** (critical for algorithms)
@@ -322,4 +342,4 @@ Want to contribute? **Read this first:**
 
 ### Questions?
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for complete details, architecture, and decision-making guidance.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow or [DEVELOPMENT.md](DEVELOPMENT.md) for deep dives.
