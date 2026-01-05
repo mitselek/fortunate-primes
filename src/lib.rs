@@ -505,10 +505,7 @@ mod tests {
         let calc = PrimeBasedCalculator::new(primes);
 
         let err = calc.primorial(10).unwrap_err();
-        assert_eq!(
-            err,
-            FortunateError::InvalidPrimeIndex { index: 10, max: 3 }
-        );
+        assert_eq!(err, FortunateError::InvalidPrimeIndex { index: 10, max: 3 });
     }
 
     #[test]
@@ -552,7 +549,12 @@ mod tests {
 
             // Fortunate number should be positive and not too large
             assert!(fortune > 0);
-            assert!(fortune < 100, "Fortunate number {} seems too large for n={}", fortune, n);
+            assert!(
+                fortune < 100,
+                "Fortunate number {} seems too large for n={}",
+                fortune,
+                n
+            );
 
             // Metrics should be sensible
             assert!(metrics.total_time.as_micros() > 0);

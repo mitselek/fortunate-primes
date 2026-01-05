@@ -356,7 +356,7 @@ For algorithmic features, discuss first:
 
 Example comment in issue:
 
-```
+```text
 ## Design Proposal
 
 ### Current
@@ -425,7 +425,7 @@ Before merging, every feature must satisfy:
 
 **Semantic Versioning** (MAJOR.MINOR.PATCH):
 
-```
+```text
 X.Y.Z
 │ │ └─ Patch: Bug fixes, internal refactors
 │ └──── Minor: New features, non-breaking changes
@@ -481,7 +481,7 @@ Ask yourself:
 
 ### 7. **Common Feature Categories**
 
-**Type: Optimization**
+**Type: Optimization**  
 
 - Measure baseline: `./benchmark.sh > baseline.txt`
 - Implement with tests
@@ -489,14 +489,14 @@ Ask yourself:
 - Compare: `diff baseline.txt after.txt`
 - Accept only if improvement ≥ expected
 
-**Type: Algorithm Addition**
+**Type: Algorithm Addition**  
 
 - Design discussion (see Lucas-Lehmer example)
 - Tests against known values (OEIS)
 - Comparison benchmarks (new vs. existing)
 - Update README comparison table
 
-**Type: Bug Fix**
+**Type: Bug Fix**  
 
 - Create failing test first
 - Fix implementation
