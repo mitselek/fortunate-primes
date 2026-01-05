@@ -1,4 +1,6 @@
-use fortunate_primes::{primes, FortunateCalculator, MillerRabin, PrimeBasedCalculator, WheelFortunateCalculator};
+use fortunate_primes::{
+    primes, FortunateCalculator, MillerRabin, PrimeBasedCalculator, WheelFortunateCalculator,
+};
 use std::io::{self, Write};
 
 fn main() {
@@ -144,7 +146,8 @@ fn benchmark_algorithms(primes: &[u32]) {
             println!("│                                                    │");
             println!("│ WHEEL FACTORIZATION OPTIMIZED                     │");
             for (name, tester) in &algorithms {
-                let mut calc = WheelFortunateCalculator::with_tester(primes.to_vec(), tester.clone());
+                let mut calc =
+                    WheelFortunateCalculator::with_tester(primes.to_vec(), tester.clone());
                 calc.set_max_candidate(1000000);
 
                 match calc.fortunate_number_with_metrics(n) {
