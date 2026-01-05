@@ -241,7 +241,15 @@ sudo dnf install gmp-devel
 
 **Slow performance** — Ensure release build: `cargo build --release`
 
-## Testing Strategy
+## Testing Strategy (TDD-First Approach)
+
+### Test-Driven Development (TDD)
+
+We follow TDD principles: **write tests first, then implementation**. This is especially critical for:
+
+- **Correctness**: Math is unforgiving. Test against [OEIS A005235](https://oeis.org/A005235) before optimization.
+- **Optimization Safety**: Before each optimization (parallelization, new algorithm), ensure tests pass.
+- **Regression Prevention**: Tests catch performance regressions or accuracy loss.
 
 ### Unit Tests
 
@@ -255,26 +263,70 @@ fn test_miller_rabin_small_primes() { ... }
 fn test_fortunate_numbers() { ... }
 ```
 
-Validate against OEIS sequence A005235 (known Fortunate numbers).
+**Validate against known values**:
+- OEIS sequence [A005235](https://oeis.org/A005235) (Fortunate numbers)
+- Known Fortunate primes: n=5→23, n=100→641, n=200→1619
+
+### Adding Tests for New Features
+
+Before implementing an optimization:
+
+1. Write a test with known input/output
+2. Run `cargo test` (should fail)
+3. Implement the optimization
+4. Run `cargo test` (should pass)
+5. Benchmark with `./benchmark.sh` to verify improvement
+
+Example:
+
+```rust
+#[test]
+fn test_parallel_speedup() {
+    // Before parallelization, this establishes baseline
+    let calc = PrimeBasedCalculator::new(primes.clone());
+    let (result, metrics) = calc.fortunate_number_with_metrics(300).unwrap();
+    
+    // Assert correctness first
+    assert_eq!(result, 5641);
+    
+    // After parallelization, result must stay same but metrics change
+    // This ensures we don't trade correctness for speed
+}
+```
 
 ### Integration Testing
 
 CLI tested manually:
 
 ```bash
-echo "1\n5\n2\n" | ./target/release/fortunate
+echo -e "1\n5\n2" | ./target/release/fortunate
 # Should find Fortunate number for n=5 → 23
 ```
 
+### Pre-Commit Testing
+
+Run before every commit:
+
+```bash
+cargo test && cargo clippy && cargo fmt
+```
+
+Or use git hooks to enforce automatically.
+
 ## Contributing
 
-When adding code:
+We follow **TDD-first** development. When adding code:
 
-1. Format: `cargo fmt`
-2. Lint: `cargo clippy`
-3. Test: `cargo test`
-4. Benchmark: `./benchmark.sh`
-5. Update README/DEVELOPMENT if needed
+1. **Write test first**: Define expected behavior with a test case
+2. **Run tests** (they'll fail): `cargo test`
+3. **Implement**: Write the minimal code to pass
+4. **Format**: `cargo fmt`
+5. **Lint**: `cargo clippy`
+6. **Test again**: `cargo test` (must pass)
+7. **Benchmark**: `./benchmark.sh` (ensure no regression)
+8. **Document**: Update README/DEVELOPMENT if needed
+
+**Golden Rule**: No optimization is correct if tests don't pass. No optimization is good if benchmarks regress.
 
 ## License
 

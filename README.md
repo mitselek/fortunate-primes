@@ -16,7 +16,25 @@ As of 2017, all known Fortunate numbers up to n=3000 have been prime (Fortune's 
 ✓ **Timing instrumentation** — measure primorial calculation & primality testing  
 ✓ **Multiple algorithms** — Compare Fast (20 rounds), Standard (40 rounds), Thorough (64 rounds)  
 ✓ **Interactive CLI** — Find single values or run full benchmarks  
-✓ **Type-safe architecture** — Traits, error handling, zero runtime type errors
+✓ **Type-safe architecture** — Traits, error handling, zero runtime type errors  
+✓ **TDD-First development** — Unit tests, integration tests, correctness guarantees
+
+## Testing & Quality
+
+This project follows **Test-Driven Development (TDD)** to ensure correctness and safe optimization:
+
+```bash
+# Run all tests
+cargo test
+
+# Lint
+cargo clippy
+
+# Format
+cargo fmt
+```
+
+**Test coverage**: Primality tests validated against [OEIS A005235](https://oeis.org/A005235); Fortunate calculations verified against known values (n=5→23, n=100→641, etc.).
 
 ## Building
 
@@ -223,7 +241,7 @@ fn is_prime_hybrid(n: &Integer) -> bool {
 **Strategy:**
 Use `rust-gpu` or CUDA bindings to test multiple candidates simultaneously:
 
-```
+```text
 GPU: Test 1000 candidates in parallel
 vs CPU: Test 1 candidate at a time
 ```
