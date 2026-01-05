@@ -1,0 +1,48 @@
+# Rust build artifacts
+/target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# OS files
+Thumbs.db
+.env
+.env.local
+
+# Benchmark and profiling
+perf.data
+perf.data.old
+*.prof
+bench_results/
+flamegraph.svg
+callgrind.out.*
+
+# Development artifacts
+*.o
+*.a
+*.so
+*.dylib
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Local testing
+test_output/
+results/
