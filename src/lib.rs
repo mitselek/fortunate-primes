@@ -330,13 +330,34 @@ impl FortunateCalculator for ParallelFortunateCalculator {
     fn fortunate_number(&self, n: usize) -> Result<u32> {
         let p_n_sharp = self.primorial(n)?;
 
-        // Find the smallest candidate where p_n# + m is prime
-        // Using a linear search instead of parallel since we need the FIRST match
-        // (Rayon's find_any doesn't guarantee the smallest value)
-        for m in 2..=self.max_candidate {
-            let candidate = p_n_sharp.clone() + Integer::from(m);
-            if self.tester.is_prime(&candidate) {
-                return Ok(m);
+        // Phase 2: Parallel candidate testing with Rayon
+        // Strategy: Process candidates in parallel batches while maintaining order
+        //
+        // We use chunks to test multiple candidates in parallel, but check batches
+        // sequentially to ensure we find the SMALLEST Fortunate number
+        //
+        // Batch size tuned for balance: large enough for parallelism benefits,
+        // small enough to avoid wasted work after finding the answer
+        const BATCH_SIZE: u32 = 100;
+
+        for batch_start in (2..=self.max_candidate).step_by(BATCH_SIZE as usize) {
+            let batch_end = (batch_start + BATCH_SIZE).min(self.max_candidate + 1);
+
+            // Test this batch in parallel
+            let result = (batch_start..batch_end).into_par_iter().find_any(|&m| {
+                let candidate = p_n_sharp.clone() + Integer::from(m);
+                self.tester.is_prime(&candidate)
+            });
+
+            // If we found a prime in this batch, find the SMALLEST one
+            if result.is_some() {
+                // Sequential search within the successful batch to find the FIRST prime
+                for m in batch_start..batch_end {
+                    let candidate = p_n_sharp.clone() + Integer::from(m);
+                    if self.tester.is_prime(&candidate) {
+                        return Ok(m);
+                    }
+                }
             }
         }
 
@@ -353,19 +374,42 @@ impl FortunateCalculator for ParallelFortunateCalculator {
         let p_n_sharp = self.primorial(n)?;
         let primorial_time = primorial_start.elapsed();
 
-        let mut primality_test_count = 0;
-        let mut primality_tests_passed = 0;
+        // Phase 2: Parallel search with metrics tracking
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let primality_test_count = AtomicUsize::new(0);
+        let primality_tests_passed = AtomicUsize::new(0);
+
+        const BATCH_SIZE: u32 = 100;
         let mut candidate_found = 0u32;
 
-        // Sequential search to ensure we find the FIRST (smallest) Fortunate number
-        for m in 2..=self.max_candidate {
-            let candidate = p_n_sharp.clone() + Integer::from(m);
-            primality_test_count += 1;
+        'outer: for batch_start in (2..=self.max_candidate).step_by(BATCH_SIZE as usize) {
+            let batch_end = (batch_start + BATCH_SIZE).min(self.max_candidate + 1);
 
-            if self.tester.is_prime(&candidate) {
-                primality_tests_passed += 1;
-                candidate_found = m;
-                break;
+            // Parallel test of this batch
+            let batch_has_prime = (batch_start..batch_end).into_par_iter().find_any(|&m| {
+                let candidate = p_n_sharp.clone() + Integer::from(m);
+                primality_test_count.fetch_add(1, Ordering::Relaxed);
+
+                let is_prime = self.tester.is_prime(&candidate);
+                if is_prime {
+                    primality_tests_passed.fetch_add(1, Ordering::Relaxed);
+                }
+                is_prime
+            });
+
+            // If batch has a prime, find the FIRST one sequentially
+            if batch_has_prime.is_some() {
+                for m in batch_start..batch_end {
+                    let candidate = p_n_sharp.clone() + Integer::from(m);
+
+                    // Only count if not already counted in parallel phase
+                    // (note: some tests will be duplicated, but metrics are approximate)
+
+                    if self.tester.is_prime(&candidate) {
+                        candidate_found = m;
+                        break 'outer;
+                    }
+                }
             }
         }
 
@@ -382,8 +426,8 @@ impl FortunateCalculator for ParallelFortunateCalculator {
             candidate_found,
             Metrics {
                 primorial_time,
-                primality_test_count,
-                primality_tests_passed,
+                primality_test_count: primality_test_count.load(Ordering::Relaxed),
+                primality_tests_passed: primality_tests_passed.load(Ordering::Relaxed),
                 total_time,
                 candidate_found,
             },
@@ -1305,16 +1349,16 @@ mod tests {
     fn test_parallel_speedup_benchmark() {
         // TDD TEST: This test should FAIL initially, then PASS after Rayon implementation
         // PERFORMANCE TEST: Parallel should be 2x+ faster than wheel for n>100
-        
+
         // Use larger prime set to test n=100
         let primes = primes::PRIMES_10K[..200].to_vec();
-        
+
         let wheel_calc = WheelFortunateCalculator::new(primes.clone());
         let par_calc = ParallelFortunateCalculator::new(primes);
 
         // Measure wheel factorization time (baseline)
         let (wheel_result, wheel_metrics) = wheel_calc.fortunate_number_with_metrics(100).unwrap();
-        
+
         // Measure parallel time (should be faster)
         let (par_result, par_metrics) = par_calc.fortunate_number_with_metrics(100).unwrap();
 
@@ -1353,8 +1397,16 @@ mod tests {
 
         // Test OEIS values through n=10
         let oeis_values = vec![
-            (1, 3), (2, 5), (3, 7), (4, 13), (5, 23),
-            (6, 17), (7, 19), (8, 23), (9, 37), (10, 61),
+            (1, 3),
+            (2, 5),
+            (3, 7),
+            (4, 13),
+            (5, 23),
+            (6, 17),
+            (7, 19),
+            (8, 23),
+            (9, 37),
+            (10, 61),
         ];
 
         for (n, expected) in oeis_values {
@@ -1396,7 +1448,7 @@ mod tests {
     fn test_parallel_large_n_speedup() {
         // PERFORMANCE TEST: Verify speedup increases with larger n
         // For n=200, parallel should be 2-3x faster than wheel
-        
+
         let primes = primes::PRIMES_10K[..300].to_vec();
         let wheel_calc = WheelFortunateCalculator::new(primes.clone());
         let par_calc = ParallelFortunateCalculator::new(primes);
@@ -1409,7 +1461,7 @@ mod tests {
 
         // PERFORMANCE (this will fail initially)
         let speedup = wheel_metrics.total_time.as_secs_f64() / par_metrics.total_time.as_secs_f64();
-        
+
         println!("n=200 Performance:");
         println!("  Wheel: {:?}", wheel_metrics.total_time);
         println!("  Parallel: {:?}", par_metrics.total_time);
