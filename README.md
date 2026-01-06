@@ -17,6 +17,7 @@ A **Fortunate prime** is a Fortunate number that is also itself prime.
 ## Features
 
 ✓ **PARI/GP backend** — 3-170x faster than pure Rust (depending on n)  
+✓ **Live progress reporting** — Real-time updates with auto-scaling time units  
 ✓ **Simple CLI** — Single command: `./fortunate <n>` (non-interactive, scriptable)  
 ✓ **10,000 primes hardcoded** — Supports n up to 10,000  
 ✓ **Type-safe Rust library** — Traits, error handling, tests  
@@ -66,10 +67,22 @@ Non-interactive CLI that requires `n` as argument:
 
 ### Output Format
 
+**Final Result:**
+
 ```text
 F(123) = 2087
-iterations: 2086
+time: 1.23s
+per_iteration: 0.61ms
 ```
+
+**Live Progress (shown during calculation):**
+While running, progress updates appear on stderr with human-readable time formatting:
+
+```text
+F(2000) > 5000 | time: 5.15s | per_iteration: 1.03ms
+```
+
+Progress line updates every ~1 second and overwrites itself (no scrolling). Final result replaces progress line when complete.
 
 ## Performance
 
@@ -77,25 +90,32 @@ iterations: 2086
 
 Baseline sequential performance on Intel 16-core system with PARI/GP 2.15.4:
 
-| n   | F(n)  | Time    | Per Iteration |
-| --- | ----- | ------- | ------------- |
-| 100 | 641   | 39.5ms  | 0.062ms       |
-| 200 | 1619  | 427.3ms | 0.264ms       |
-| 300 | 5641  | 4.7s    | 0.826ms       |
-| 400 | 5051  | 10.4s   | 2.061ms       |
-| 500 | 5167  | 21.0s   | 4.071ms       |
+| n   | F(n) | Time    | Per Iteration |
+| --- | ---- | ------- | ------------- |
+| 100 | 641  | 39.5ms  | 0.062ms       |
+| 200 | 1619 | 427.3ms | 0.264ms       |
+| 300 | 5641 | 4.7s    | 0.826ms       |
+| 400 | 5051 | 10.4s   | 2.061ms       |
+| 500 | 5167 | 21.0s   | 4.071ms       |
 
 ### Parallel PARI/GP Performance (v0.5.2+)
 
-Multi-core speedup with interleaved candidate search:
+Multi-core sequential benchmarks with interleaved candidate search (16 workers):
 
-| Workers | F(300) Time | Speedup | F(500) Time | Speedup |
-| ------- | ----------- | ------- | ----------- | ------- |
-| 1       | 4.7s        | 1.0x    | 21.0s       | 1.0x    |
-| 2       | 4.6s        | 1.0x    | 14.8s       | 1.4x    |
-| 4       | 2.4s        | 1.9x    | 7.5s        | 2.8x    |
-| 8       | 1.3s        | 3.5x    | 4.2s        | 5.0x    |
-| 16      | 1.3s        | 3.5x    | 3.9s        | 5.4x    |
+| n    | F(n)  | Time    | Time/F(n) | Per Iteration |
+| ---- | ----- | ------- | --------- | ------------- |
+| 600  | 16187 | 16.7s   | 1.032ms   | 16.482ms      |
+| 700  | 13259 | 21.3s   | 1.606ms   | 25.719ms      |
+| 800  | 6473  | 18.0s   | 2.779ms   | 44.363ms      |
+| 900  | 7547  | 48.1s   | 6.371ms   | 101.808ms     |
+| 1000 | 8719  | 75.9s   | 8.703ms   | 139.268ms     |
+| 2000 | 51137 | 1775.1s | 34.704ms  | 555.247ms     |
+
+**Metric Explanation:**
+
+- **Time**: Total wall-clock execution time to calculate F(n) with 16 parallel workers
+- **Time/F(n)**: Total time divided by the Fortunate number value (time per unit of result magnitude). Less mathematically meaningful but shows execution scaling relative to result size. Note: increases from 1.0ms to 34.7ms, indicating F(n) grows slower than computation cost.
+- **Per Iteration**: Total time divided by number of candidates tested (≈ F(n) - 1). This is the actual computational cost of each primality test. Shows the true algorithm bottleneck: primality testing becomes exponentially more expensive as n increases (16.5ms → 555.2ms), because PARI/GP must verify increasingly large numbers for primality.
 
 **Usage:**
 
@@ -113,6 +133,7 @@ Multi-core speedup with interleaved candidate search:
 **Algorithm: Interleaved Candidate Search**
 
 Each worker thread spawns a PARI/GP process and tests candidates at stride N:
+
 - Worker 0: primorial(n) + 1, +N+1, +2N+1, ...
 - Worker 1: primorial(n) + 2, +N+2, +2N+2, ...
 - Worker k: primorial(n) + k + 1, +N+k+1, +2N+k+1, ...

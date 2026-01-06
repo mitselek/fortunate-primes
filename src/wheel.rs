@@ -1,5 +1,5 @@
-use crate::{FortunateCalculator, FortunateError, Metrics, PrimalityTest, Result};
 use crate::primality::MillerRabin;
+use crate::{FortunateCalculator, FortunateError, Metrics, PrimalityTest, Result};
 use rug::Integer;
 use std::time::Instant;
 

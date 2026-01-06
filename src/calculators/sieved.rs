@@ -1,9 +1,12 @@
-use std::time::Instant;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use rayon::prelude::*;
 use rug::Integer;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Instant;
 
-use crate::{FortunateCalculator, FortunateError, Metrics, Result, MillerRabin, PrimalityTest, SegmentedSieve};
+use crate::{
+    FortunateCalculator, FortunateError, Metrics, MillerRabin, PrimalityTest, Result,
+    SegmentedSieve,
+};
 
 /// Sieved Fortunate calculator using segmented sieve pre-filtering
 ///
@@ -148,8 +151,8 @@ mod tests {
     #[test]
     fn test_sieved_reduces_miller_rabin_calls() {
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97,
         ];
 
         let mut calc = SievedFortunateCalculator::new(primes);
@@ -169,8 +172,8 @@ mod tests {
     #[test]
     fn test_sieved_calculator_correctness() {
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97,
         ];
 
         let mut calc = SievedFortunateCalculator::new(primes);
@@ -187,8 +190,8 @@ mod tests {
     #[test]
     fn test_sieved_fortunes_are_prime() {
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97,
         ];
 
         let mut calc = SievedFortunateCalculator::new(primes);
@@ -205,9 +208,9 @@ mod tests {
     #[test]
     fn test_sieved_no_regression_small_n() {
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167,
-            173, 179, 181, 191, 193, 197, 199,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179,
+            181, 191, 193, 197, 199,
         ];
 
         let mut calc = SievedFortunateCalculator::new(primes);
@@ -227,8 +230,8 @@ mod tests {
     #[test]
     fn test_sieved_speedup_benchmark() {
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149,
         ];
 
         let mut calc = SievedFortunateCalculator::new(primes);

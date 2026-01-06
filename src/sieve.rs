@@ -3,7 +3,7 @@
 /// This module provides an efficient segmented sieve of Eratosthenes for quickly
 /// identifying probable primes before expensive Miller-Rabin primality testing.
 /// This is the core optimization of Phase 3.
-
+///
 /// Segmented Sieve of Eratosthenes
 ///
 /// Pre-filters candidates by eliminating multiples of small primes.

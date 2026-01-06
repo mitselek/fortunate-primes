@@ -1,6 +1,6 @@
-use std::process::{Command, Stdio};
-use std::io::Write;
 use rug::Integer;
+use std::io::Write;
+use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::sync::mpsc;
 use std::thread;
@@ -13,7 +13,8 @@ pub fn fortunate_pari_calculate(n: usize) -> Result<(Integer, usize), String> {
 
 /// PARI/GP implementation via subprocess
 fn fortunate_pari(n: usize) -> Result<(Integer, usize), String> {
-    let script = format!(r#"
+    let script = format!(
+        r#"
 primorial(n) = {{
     local(result, p);
     result = 1;
@@ -40,7 +41,9 @@ fortunate(n) = {{
 result = fortunate({});
 print(result[1]);
 print(result[2]);
-"#, n);
+"#,
+        n
+    );
 
     let mut child = Command::new("gp")
         .arg("-q")
@@ -52,14 +55,20 @@ print(result[2]);
 
     {
         let stdin = child.stdin.as_mut().ok_or("Failed to open stdin")?;
-        stdin.write_all(script.as_bytes()).map_err(|e| format!("Failed to write to PARI/GP stdin: {}", e))?;
+        stdin
+            .write_all(script.as_bytes())
+            .map_err(|e| format!("Failed to write to PARI/GP stdin: {}", e))?;
     }
 
-    let output = child.wait_with_output()
+    let output = child
+        .wait_with_output()
         .map_err(|e| format!("Failed to wait for PARI/GP: {}", e))?;
 
     if !output.status.success() {
-        return Err(format!("PARI/GP error: {}", String::from_utf8_lossy(&output.stderr)));
+        return Err(format!(
+            "PARI/GP error: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
 
     // Parse output
@@ -72,7 +81,8 @@ print(result[2]);
 
     let fortunate = Integer::from_str(lines[0])
         .map_err(|e| format!("Failed to parse fortunate number: {}", e))?;
-    let iterations = lines[1].parse::<usize>()
+    let iterations = lines[1]
+        .parse::<usize>()
         .map_err(|e| format!("Failed to parse iterations: {}", e))?;
 
     Ok((fortunate, iterations))
@@ -96,9 +106,12 @@ pub fn check_pari_installation() -> Result<String, String> {
 /// Parallel PARI/GP search using multiple processes
 /// Spawns num_workers processes that coordinately search the candidate space
 /// Returns the first result found (which is the true Fortunate number)
-pub fn fortunate_pari_parallel(n: usize, num_workers: Option<usize>) -> Result<(Integer, usize), String> {
+pub fn fortunate_pari_parallel(
+    n: usize,
+    num_workers: Option<usize>,
+) -> Result<(Integer, usize), String> {
     let workers = num_workers.unwrap_or_else(|| num_cpus::get());
-    
+
     if workers == 1 {
         // Fall back to sequential
         return fortunate_pari(n);
@@ -106,14 +119,15 @@ pub fn fortunate_pari_parallel(n: usize, num_workers: Option<usize>) -> Result<(
 
     let (tx, rx) = mpsc::channel();
     let mut handles = vec![];
-    
+
     // Spawn worker threads that search the space with interleaved offsets
     for worker_id in 0..workers {
         let tx = tx.clone();
         let handle = thread::spawn(move || {
             // Each worker searches candidates at intervals: worker_id, worker_id + num_workers, worker_id + 2*num_workers, etc.
             // This ensures we find F(n) when ANY worker finds it, and it's guaranteed to be correct
-            let search_script = format!(r#"
+            let search_script = format!(
+                r#"
 primorial(n) = {{
     local(result, p);
     result = 1;
@@ -145,13 +159,17 @@ if(result != 0,
     print(result[1]);
     print(result[2])
 );
-"#, n, worker_id, workers);
+"#,
+                n, worker_id, workers
+            );
 
             match run_pari_script(&search_script) {
                 Ok(output) if !output.trim().is_empty() => {
                     let lines: Vec<&str> = output.trim().split('\n').collect();
                     if lines.len() >= 2 {
-                        if let (Ok(f), Ok(iter)) = (Integer::from_str(lines[0]), lines[1].parse::<usize>()) {
+                        if let (Ok(f), Ok(iter)) =
+                            (Integer::from_str(lines[0]), lines[1].parse::<usize>())
+                        {
                             let _ = tx.send(Ok((f, iter)));
                         }
                     }
@@ -190,14 +208,20 @@ fn run_pari_script(script: &str) -> Result<String, String> {
 
     {
         let stdin = child.stdin.as_mut().ok_or("Failed to open stdin")?;
-        stdin.write_all(script.as_bytes()).map_err(|e| format!("Failed to write to PARI/GP stdin: {}", e))?;
+        stdin
+            .write_all(script.as_bytes())
+            .map_err(|e| format!("Failed to write to PARI/GP stdin: {}", e))?;
     }
 
-    let output = child.wait_with_output()
+    let output = child
+        .wait_with_output()
         .map_err(|e| format!("Failed to wait for PARI/GP: {}", e))?;
 
     if !output.status.success() {
-        return Err(format!("PARI/GP error: {}", String::from_utf8_lossy(&output.stderr)));
+        return Err(format!(
+            "PARI/GP error: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
 
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
@@ -232,13 +256,13 @@ mod tests {
         // Test that parallel produces same result as sequential
         let seq_result = fortunate_pari_calculate(50);
         let par_result = fortunate_pari_parallel(50, Some(2));
-        
+
         assert!(seq_result.is_ok());
         assert!(par_result.is_ok());
-        
+
         let (f_seq, _) = seq_result.unwrap();
         let (f_par, _) = par_result.unwrap();
-        
+
         // Must find the same Fortunate number
         assert_eq!(f_seq, f_par, "Parallel and sequential must find same F(n)");
     }
@@ -247,17 +271,19 @@ mod tests {
     #[ignore] // Requires PARI/GP and takes time
     fn test_parallel_oeis_validation() {
         // Verify OEIS A005235 values
-        let test_cases = vec![
-            (5, 23),
-            (10, 61),
-            (20, 79),
-        ];
+        let test_cases = vec![(5, 23), (10, 61), (20, 79)];
 
         for (n, expected_f) in test_cases {
             let result = fortunate_pari_parallel(n, Some(2));
             assert!(result.is_ok(), "Failed to calculate F({})", n);
             let (f, _) = result.unwrap();
-            assert_eq!(f, Integer::from(expected_f), "F({}) should be {}", n, expected_f);
+            assert_eq!(
+                f,
+                Integer::from(expected_f),
+                "F({}) should be {}",
+                n,
+                expected_f
+            );
         }
     }
 

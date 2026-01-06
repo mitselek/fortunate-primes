@@ -15,8 +15,14 @@ fn main() {
         eprintln!("  --workers N        Number of parallel workers (default: auto-detect)");
         eprintln!("\nExamples:");
         eprintln!("  {} 123               # Sequential search", args[0]);
-        eprintln!("  {} --parallel 123    # Parallel search (16 workers)", args[0]);
-        eprintln!("  {} --parallel --workers 4 123  # Parallel with 4 workers", args[0]);
+        eprintln!(
+            "  {} --parallel 123    # Parallel search (16 workers)",
+            args[0]
+        );
+        eprintln!(
+            "  {} --parallel --workers 4 123  # Parallel with 4 workers",
+            args[0]
+        );
         eprintln!("\nFor more details, see README.md");
         process::exit(1);
     }
@@ -44,15 +50,13 @@ fn main() {
                     process::exit(1);
                 }
             }
-            arg if !arg.starts_with("--") => {
-                match arg.parse() {
-                    Ok(num) => n = num,
-                    Err(_) => {
-                        eprintln!("Error: '{}' is not a valid positive integer", arg);
-                        process::exit(1);
-                    }
+            arg if !arg.starts_with("--") => match arg.parse() {
+                Ok(num) => n = num,
+                Err(_) => {
+                    eprintln!("Error: '{}' is not a valid positive integer", arg);
+                    process::exit(1);
                 }
-            }
+            },
             arg => {
                 eprintln!("Error: Unknown option '{}'", arg);
                 process::exit(1);

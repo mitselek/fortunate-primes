@@ -1,8 +1,8 @@
-use std::time::Instant;
 use rayon::prelude::*;
 use rug::Integer;
+use std::time::Instant;
 
-use crate::{FortunateCalculator, FortunateError, Metrics, Result, MillerRabin, PrimalityTest};
+use crate::{FortunateCalculator, FortunateError, Metrics, MillerRabin, PrimalityTest, Result};
 
 /// Parallel Fortunate calculator using Rayon for candidate testing
 ///
@@ -200,8 +200,8 @@ mod tests {
     #[test]
     fn test_parallel_correctness_with_rayon() {
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97,
         ];
 
         let mut calc = ParallelFortunateCalculator::new(primes);
@@ -218,8 +218,8 @@ mod tests {
     #[test]
     fn test_parallel_fortunes_are_prime() {
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97,
         ];
 
         let mut calc = ParallelFortunateCalculator::new(primes);
@@ -236,8 +236,8 @@ mod tests {
     #[test]
     fn test_parallel_sequential_equivalence_property() {
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97,
         ];
 
         let mut par_calc = ParallelFortunateCalculator::new(primes.clone());
@@ -261,31 +261,33 @@ mod tests {
     #[test]
     fn test_parallel_vs_sequential_all_values() {
         use crate::calculators::base::PrimeBasedCalculator;
-        
+
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149,
         ];
 
         let mut seq_calc = PrimeBasedCalculator::new(primes.clone());
         seq_calc.set_max_candidate(10000);
-        
+
         let mut par_calc = ParallelFortunateCalculator::new(primes.clone());
         par_calc.set_max_candidate(10000);
 
         // Compare parallel against sequential for n=25
         let seq_result = seq_calc.fortunate_number(25).unwrap();
         let par_result = par_calc.fortunate_number(25).unwrap();
-        
-        assert_eq!(par_result, seq_result, 
-            "Parallel and sequential calculators disagree for n=25");
+
+        assert_eq!(
+            par_result, seq_result,
+            "Parallel and sequential calculators disagree for n=25"
+        );
     }
 
     #[test]
     fn test_parallel_thread_safety() {
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97,
         ];
 
         let mut calc = ParallelFortunateCalculator::new(primes);
