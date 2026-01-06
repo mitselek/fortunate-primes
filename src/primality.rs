@@ -2,7 +2,6 @@
 ///
 /// This module provides efficient probabilistic primality testing using the Miller-Rabin algorithm.
 /// It implements the `PrimalityTest` trait for use across the fortunate-primes calculator.
-
 use crate::PrimalityTest;
 use rug::Integer;
 

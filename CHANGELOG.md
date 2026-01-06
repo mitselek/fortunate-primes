@@ -14,6 +14,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.3] - 2026-01-06
+
+### Feature
+
+- **Live Progress Reporting** — Real-time progress updates with auto-scaling time units
+  - Updates every ~1 second with human-readable formatting
+  - Shows: F(n) > current_candidate, elapsed time, per-iteration cost
+  - Auto-scales time units: ms/s/m based on magnitude
+  - Terminal-friendly: updates in-place without scrolling
+  - Works in sequential and parallel modes
+  - New module: `progress.rs` with `TimeFormatter` and `ProgressReporter`
+
+### Test Coverage
+
+- 18 new tests covering progress reporting functionality
+- TimeFormatter unit tests (milliseconds, seconds, minutes scaling)
+- ProgressReporter behavior tests (reporting intervals, overwrite behavior)
+- Integration test (progress updates during actual calculation)
+
+### Performance
+
+- No regression: sequential benchmarks unchanged
+- All 80 tests pass (62 existing + 18 new)
+
+---
+
 ## [0.5.2] - 2026-01-06
 
 ### Major Feature

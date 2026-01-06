@@ -1,7 +1,7 @@
-use std::time::Instant;
 use rug::Integer;
+use std::time::Instant;
 
-use crate::{FortunateCalculator, FortunateError, Metrics, Result, MillerRabin, PrimalityTest};
+use crate::{FortunateCalculator, FortunateError, Metrics, MillerRabin, PrimalityTest, Result};
 
 /// Basic Fortunate calculator using sequential candidate testing
 ///
@@ -166,8 +166,8 @@ mod tests {
     #[test]
     fn test_fortunate_numbers_early_values() {
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97,
         ];
 
         let mut calc = PrimeBasedCalculator::new(primes);
@@ -184,8 +184,8 @@ mod tests {
     #[test]
     fn test_fortunate_prime_detection() {
         let primes = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-            83, 89, 97,
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97,
         ];
 
         let mut calc = PrimeBasedCalculator::new(primes);
