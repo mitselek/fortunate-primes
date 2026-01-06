@@ -8,10 +8,10 @@ use std::sync::mpsc;
 use std::thread;
 
 /// Batch size for parallel search
-const BATCH_SIZE: u64 = 10_000;
+const BATCH_SIZE: u64 = 1_000;
 
 /// Number of parallel workers
-const NUM_WORKERS: usize = 8;
+const NUM_WORKERS: usize = 32;
 
 /// Find the Fortunate number F(n) using parallel batch search
 ///
