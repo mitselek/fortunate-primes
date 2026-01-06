@@ -31,7 +31,7 @@ impl ProgressReporter {
     }
 
     /// Check if we should report now
-    fn should_report(&self) -> bool {
+    pub fn should_report(&self) -> bool {
         let elapsed = self.start_time.elapsed();
 
         // Must be past initial delay
@@ -49,9 +49,9 @@ impl ProgressReporter {
         true
     }
 
-    /// Report intermediate progress: "F(n) <= candidate (elapsed)"
+    /// Report intermediate progress: "F(n) <= candidate [batch_size] (elapsed)"
     /// Only outputs if timing conditions are met
-    pub fn report_progress(&mut self, candidate: u64) {
+    pub fn report_progress(&mut self, candidate: u64, batch_size: u64) {
         if !self.should_report() {
             return;
         }
@@ -59,7 +59,7 @@ impl ProgressReporter {
         let elapsed = self.start_time.elapsed();
         let time_str = format_duration(elapsed);
 
-        eprint!("\rF({}) <= {} ({})   ", self.n, candidate, time_str);
+        eprint!("\rF({}) <= {} [{}] ({})   ", self.n, candidate, batch_size, time_str);
         let _ = io::stderr().flush();
         self.last_report = Some(Instant::now());
         self.reported = true;
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn test_reporter_respects_initial_delay() {
         let mut reporter = ProgressReporter::new(100, 10.0, 1.0); // 10s delay
-        reporter.report_progress(500); // Should not output (delay not passed)
+        reporter.report_progress(500, 100); // Should not output (delay not passed)
         assert!(!reporter.reported);
     }
 }

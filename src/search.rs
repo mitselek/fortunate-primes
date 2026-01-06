@@ -73,13 +73,18 @@ pub fn find_fortunate(n: usize) -> Result<u64, String> {
                 let is_better = best.map(|b| candidate < b).unwrap_or(true);
                 if is_better {
                     best = Some(candidate);
-                    reporter.report_progress(candidate);
+                }
+            }
+
+            // Report progress if timing allows (even if no new candidate found)
+            if reporter.should_report() {
+                if let Some(best_so_far) = best {
+                    reporter.report_progress(best_so_far, batch_size);
                 }
             }
 
             // Adaptive sizing: if batch was fast and no result yet, grow batch size
-            let batch_time = Instant::now();
-            if result.is_none() && batch_time.elapsed().as_secs() < GROWTH_THRESHOLD_SECS {
+            if result.is_none() && Instant::now().elapsed().as_secs() < GROWTH_THRESHOLD_SECS {
                 batch_size = batch_size.saturating_mul(2);
             }
 
