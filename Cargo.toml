@@ -6,5 +6,7 @@ description = "Calculate Fortunate numbers F(n) using PARI/GP"
 license = "MIT"
 
 [dependencies]
+num_cpus = "1.16"
+crossbeam-channel = "0.5"
 
 [dev-dependencies]
