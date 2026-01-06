@@ -9,44 +9,72 @@ use std::time::{Duration, Instant};
 pub struct ProgressReporter {
     n: usize,
     start_time: Instant,
-    delay: Duration,
-    started: bool,
+    last_report: Option<Instant>,
+    initial_delay: Duration,
+    min_interval: Duration,
+    reported: bool,
 }
 
 impl ProgressReporter {
-    /// Create a new reporter that starts after `delay_secs` seconds
-    pub fn new(n: usize, delay_secs: f64) -> Self {
+    /// Create a new reporter
+    /// - initial_delay: seconds before first output (e.g., 2.0)
+    /// - min_interval: seconds between outputs (e.g., 1.0)
+    pub fn new(n: usize, initial_delay_secs: f64, min_interval_secs: f64) -> Self {
         Self {
             n,
             start_time: Instant::now(),
-            delay: Duration::from_secs_f64(delay_secs),
-            started: false,
+            last_report: None,
+            initial_delay: Duration::from_secs_f64(initial_delay_secs),
+            min_interval: Duration::from_secs_f64(min_interval_secs),
+            reported: false,
         }
     }
 
-    /// Report progress with current best candidate
-    /// Format: "F(n) > candidate (elapsed)"
-    /// Only outputs if delay has passed
-    pub fn report(&mut self, candidate: u64) {
-        if self.start_time.elapsed() < self.delay {
+    /// Check if we should report now
+    fn should_report(&self) -> bool {
+        let elapsed = self.start_time.elapsed();
+
+        // Must be past initial delay
+        if elapsed < self.initial_delay {
+            return false;
+        }
+
+        // Must be past min_interval since last report
+        if let Some(last) = self.last_report {
+            if last.elapsed() < self.min_interval {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// Report intermediate progress: "F(n) <= candidate (elapsed)"
+    /// Only outputs if timing conditions are met
+    pub fn report_progress(&mut self, candidate: u64) {
+        if !self.should_report() {
             return;
         }
 
         let elapsed = self.start_time.elapsed();
         let time_str = format_duration(elapsed);
 
-        // Overwrite line with \r
-        eprint!("\rF({}) > {} ({})   ", self.n, candidate, time_str);
+        eprint!("\rF({}) <= {} ({})   ", self.n, candidate, time_str);
         let _ = io::stderr().flush();
-        self.started = true;
+        self.last_report = Some(Instant::now());
+        self.reported = true;
     }
 
-    /// Clear the progress line if we started reporting
-    pub fn clear(&self) {
-        if self.started {
+    /// Report final result: "F(n) = result (elapsed)"
+    /// Always outputs, clears any previous progress
+    pub fn report_final(&self, result: u64) {
+        let elapsed = self.start_time.elapsed();
+        let time_str = format_duration(elapsed);
+
+        if self.reported {
             eprint!("\r{}\r", " ".repeat(60));
-            let _ = io::stderr().flush();
         }
+        println!("F({}) = {} ({})", self.n, result, time_str);
     }
 
     /// Get elapsed time
@@ -91,9 +119,9 @@ mod tests {
     }
 
     #[test]
-    fn test_reporter_respects_delay() {
-        let mut reporter = ProgressReporter::new(100, 10.0); // 10s delay
-        reporter.report(500); // Should not output (delay not passed)
-        assert!(!reporter.started);
+    fn test_reporter_respects_initial_delay() {
+        let mut reporter = ProgressReporter::new(100, 10.0, 1.0); // 10s delay
+        reporter.report_progress(500); // Should not output (delay not passed)
+        assert!(!reporter.reported);
     }
 }

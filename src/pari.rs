@@ -3,60 +3,78 @@
 //! Provides functions to call PARI/GP for primality testing.
 
 use std::io::Write;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 
-/// Search for first prime in range [start, end] where primorial(n) + candidate is prime.
-/// Returns Some(candidate) if found, None if no prime in range.
-/// Note: Fortunate numbers require candidate > 1 (by definition)
+/// A running PARI/GP search that can be killed
+pub struct PariSearch {
+    child: Child,
+}
+
+impl PariSearch {
+    /// Start a PARI/GP search for first prime in range [start, end]
+    pub fn start(n: usize, start: u64, end: u64) -> Result<Self, String> {
+        // Ensure start >= 2 (Fortunate numbers must be > 1)
+        let actual_start = start.max(2);
+
+        // PARI script: search for first prime in range
+        let script = format!(
+            "pn=prod(i=1,{},prime(i)); for(m={},{}, if(ispseudoprime(pn+m), print(m); break))\n",
+            n, actual_start, end
+        );
+
+        let mut child = Command::new("gp")
+            .arg("-q")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("Failed to spawn PARI/GP: {}", e))?;
+
+        // Write script to stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin
+                .write_all(script.as_bytes())
+                .map_err(|e| format!("Failed to write to stdin: {}", e))?;
+        }
+
+        Ok(Self { child })
+    }
+
+    /// Wait for the search to complete and return result
+    pub fn wait(self) -> Result<Option<u64>, String> {
+        let output = self
+            .child
+            .wait_with_output()
+            .map_err(|e| format!("Failed to wait for PARI/GP: {}", e))?;
+
+        if !output.status.success() {
+            // Process was killed or failed - return None, not error
+            return Ok(None);
+        }
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let trimmed = stdout.trim();
+
+        if trimmed.is_empty() {
+            Ok(None)
+        } else {
+            trimmed
+                .parse::<u64>()
+                .map(Some)
+                .map_err(|e| format!("Failed to parse PARI output '{}': {}", trimmed, e))
+        }
+    }
+
+    /// Kill the subprocess
+    pub fn kill(&mut self) {
+        let _ = self.child.kill();
+    }
+}
+
+/// Search for first prime in range (convenience wrapper)
 pub fn search_range(n: usize, start: u64, end: u64) -> Result<Option<u64>, String> {
-    // Ensure start >= 2 (Fortunate numbers must be > 1)
-    let actual_start = start.max(2);
-    if actual_start > end {
-        return Ok(None);
-    }
-
-    // PARI script: search for first prime in range
-    let script = format!(
-        "pn=prod(i=1,{},prime(i)); for(m={},{}, if(ispseudoprime(pn+m), print(m); break))\n",
-        n, actual_start, end
-    );
-
-    let mut child = Command::new("gp")
-        .arg("-q")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("Failed to spawn PARI/GP: {}", e))?;
-
-    // Write script to stdin
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin
-            .write_all(script.as_bytes())
-            .map_err(|e| format!("Failed to write to stdin: {}", e))?;
-        // stdin is dropped here, closing the pipe
-    }
-
-    let output = child
-        .wait_with_output()
-        .map_err(|e| format!("Failed to wait for PARI/GP: {}", e))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("PARI/GP error: {}", stderr));
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let trimmed = stdout.trim();
-
-    if trimmed.is_empty() {
-        Ok(None)
-    } else {
-        trimmed
-            .parse::<u64>()
-            .map(Some)
-            .map_err(|e| format!("Failed to parse PARI output '{}': {}", trimmed, e))
-    }
+    let search = PariSearch::start(n, start, end)?;
+    search.wait()
 }
 
 /// Check if PARI/GP is installed

@@ -1,8 +1,6 @@
-use fortunate_primes::progress::format_duration;
 use fortunate_primes::search;
 use std::env;
 use std::process;
-use std::time::Instant;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -22,13 +20,9 @@ fn main() {
         }
     };
 
-    let start = Instant::now();
-
     match search::find_fortunate(n) {
-        Ok(result) => {
-            let elapsed = start.elapsed();
-            println!("F({}) = {}", n, result);
-            println!("time: {}", format_duration(elapsed));
+        Ok(_) => {
+            // Output already printed by reporter
         }
         Err(e) => {
             eprintln!("Error: {}", e);

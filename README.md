@@ -19,7 +19,7 @@ cargo build --release
 
 ## Examples
 
-```
+```text
 $ ./target/release/fortunate-primes 10
 F(10) = 61
 time: 16ms
