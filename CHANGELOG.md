@@ -14,6 +14,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.2] - 2026-01-06
+
+### Major Feature
+
+- **Parallel PARI/GP Search**: Implement multi-core candidate testing using interleaved stride strategy
+  - Spawn N worker threads with independent PARI/GP processes
+  - Each worker tests candidates at stride N, ensuring correctness
+  - Auto-detect CPU core count or specify manually via `--workers` flag
+  - Achieves 3.5x speedup with 8 cores (F(300): 4.7s → 1.3s)
+  - Reaches 5.4x speedup with 16 cores (F(500): 21s → 3.9s)
+
+### Enhancement
+
+- Add `--parallel` and `--workers` CLI flags
+- Add `num_cpus` dependency for core detection
+- Update README with parallel performance benchmarks
+- Update main.rs to support flexible CLI argument parsing
+
+### Tests
+
+- Add OEIS A005235 validation tests for parallel implementation
+- Add worker count equivalence tests (2, 4, 8, 16 workers)
+- All 62 existing tests pass without regression
+
+---
+
 ## [0.5.1] - 2026-01-05
 
 ### Enhancement
