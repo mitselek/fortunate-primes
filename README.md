@@ -42,3 +42,19 @@ Progress is shown after 2 seconds of computation.
 ```bash
 cargo test
 ```
+
+## Performance
+
+Using PARI/GP backend is significantly faster than pure Rust implementations, especially for larger `n`.
+
+Some sample results:
+
+| n    | F(n)  | Batch size | Time   |
+| ---- | ----- | ---------- | ------ |
+| 500  | 5167  | 800        | 5.7s   |
+| 600  | 16187 | 800        | 19.8s  |
+| 700  | 12853 | 1600       | 30s    |
+| 1079 | 8929  | 800        | 57.28s |
+| 1300 | 13457 | 1600       | 3.2m   |
+| 1800 | 16229 | 1600       | 8.30m  |
+| 2000 | 51137 | 200        | 27.23m |
