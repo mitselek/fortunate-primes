@@ -1,33 +1,142 @@
 # Fortunate Primes Calculator
 
-A high-performance Rust tool to calculate Fortunate numbers beyond n=3000, with **benchmarking** and **performance analysis** capabilities.
+A high-performance calculator using **PARI/GP** to compute Fortunate numbers efficiently.
 
-**Contributing?** → Read [CONTRIBUTING.md](CONTRIBUTING.md) first (5-minute guide to the workflow)
-**Detailed workflow?** → See [DEVELOPMENT.md](DEVELOPMENT.md) (architecture, strategy, examples)
-**Want to contribute code?** → Check [SYSTEM_PROMPT.md](SYSTEM_PROMPT.md) (for AI agents)
+**Contributing?** → Read [CONTRIBUTING.md](CONTRIBUTING.md) (5-minute workflow guide)  
+**Architecture details?** → See [DEVELOPMENT.md](DEVELOPMENT.md) (design and structure)  
+**System instructions?** → Check [SYSTEM_PROMPT.md](SYSTEM_PROMPT.md) (for AI agents)
 
 ## What are Fortunate Numbers?
 
-A **Fortunate number** is the smallest integer m > 1 such that p_n# + m is prime, where p_n# is the primorial (product of the first n primes).
+A **Fortunate number** F(n) is the smallest integer m > 1 such that p_n# + m is prime, where p_n# is the primorial (product of the first n primes).
 
 A **Fortunate prime** is a Fortunate number that is also itself prime.
 
-As of 2017, all known Fortunate numbers up to n=3000 have been prime (Fortune's conjecture).
+**Fortune's conjecture**: All known Fortunate numbers up to n=3000 are prime.
 
 ## Features
 
-✓ **10,000 primes** hardcoded (supports n up to 10,000)
-✓ **Wheel Factorization** — 40-50% speedup via candidate pre-filtering (Phase 1.2)
-✓ **Parallel Candidate Testing** — 2-3x speedup using Rayon multi-core execution (Phase 2)
-✓ **Timing instrumentation** — measure primorial calculation & primality testing
-✓ **Multiple algorithms** — Compare Fast (20 rounds), Standard (40 rounds), Thorough (64 rounds)
-✓ **Interactive CLI** — Find single values or run benchmarks comparing optimizations
-✓ **Type-safe architecture** — Traits, error handling, zero runtime type errors
-✓ **TDD-First development** — 39 unit tests, integration tests, OEIS A005235 validation
+✓ **PARI/GP backend** — 3-170x faster than pure Rust (depending on n)  
+✓ **Simple CLI** — Single command: `./fortunate <n>` (non-interactive, scriptable)  
+✓ **10,000 primes hardcoded** — Supports n up to 10,000  
+✓ **Type-safe Rust library** — Traits, error handling, tests  
+✓ **TDD-first development** — 39 unit tests, OEIS validation
 
-## Testing & Quality
+## Dependencies
 
-This project follows **Test-Driven Development (TDD)** to ensure correctness and safe optimization:
+**Required**: PARI/GP (for calculations)
+
+```bash
+# Ubuntu/Debian
+sudo apt install pari-gp
+
+# macOS
+brew install pari
+```
+
+## Building
+
+```bash
+cargo build --release
+```
+
+## Usage
+
+Non-interactive CLI that requires `n` as argument:
+
+```bash
+./target/release/fortunate <n>
+```
+
+### Examples
+
+```bash
+./target/release/fortunate 100    # F(100) = 641
+./target/release/fortunate 500    # Larger calculations
+./target/release/fortunate 1000   # Supported up to n=10000
+```
+
+### Error Handling
+
+```bash
+./target/release/fortunate          # Missing argument
+./target/release/fortunate abc      # Invalid input
+./target/release/fortunate 0        # Out of range
+```
+
+### Output Format
+
+```text
+F(123) = 2087
+iterations: 2086
+```
+
+## Performance
+
+### PARI/GP Benchmarks (Measured v0.5.1+)
+
+Actual measured performance on an Intel system with PARI/GP 2.15.4:
+
+| n   | F(n)  | Total Time  | Per Iteration |
+| --- | ----- | ----------- | ------------- |
+| 100 | 641   | **39.5ms**  | 0.062ms       |
+| 200 | 1619  | **427.3ms** | 0.264ms       |
+| 300 | 5641  | **4.7s**    | 0.826ms       |
+| 400 | 5051  | **10.4s**   | 2.061ms       |
+| 500 | 5167  | **21.0s**   | 4.071ms       |
+| 600 | 16187 | **107.5s**  | 6.642ms       |
+
+**Understanding the metrics:**
+
+- **F(n)**: The Fortunate number (always equals iterations + 1)
+- **Total Time**: Wall-clock time to find F(n), measured by the program
+- **Per Iteration**: Time spent per primality test (F(n) - 1 tests required)
+
+The per-iteration cost increases with n because:
+
+- Larger primorials have more digits
+- Baillie-PSW primality test is O(log³ n) in the number's bit length
+- FFT multiplication cost dominates for large numbers
+
+**Performance characteristics:**
+
+- Primality testing is the computational bottleneck
+- Linear scaling with iteration count for small n, superlinear for larger n
+- Baillie-PSW algorithm (Miller-Rabin + Lucas) deterministic for all tested ranges
+- Optimized C implementation with 30+ years of mathematical library development
+
+## Architecture
+
+### Current Design (v0.5.0+)
+
+```text
+src/
+├── main.rs           # CLI interface, argument parsing
+├── hybrid.rs         # PARI/GP subprocess wrapper
+└── lib.rs            # Rust implementations (reference/testing)
+    ├── primality.rs  # Miller-Rabin tests
+    ├── sieve.rs      # Candidate generation
+    └── primes.rs     # Pre-computed prime list
+```
+
+**Data flow:**
+
+```text
+Input n → [main.rs] Parse & validate
+         → [hybrid.rs] Call PARI/GP subprocess
+         → [PARI/GP] Calculate F(n)
+         → [hybrid.rs] Parse output
+         → Output F(n) and iteration count
+```
+
+### Why This Design
+
+1. **PARI/GP is battle-tested** — Decades of mathematical research implementation
+2. **Simple and maintainable** — Single responsibility: calculate and format output
+3. **Rust library still available** — For testing, benchmarking, educational use
+4. **Extensible** — Easy to add CLI features, output formats, etc.
+
+## Testing
 
 ```bash
 # Run all tests
@@ -40,407 +149,43 @@ cargo clippy
 cargo fmt
 ```
 
-**Test coverage**: Primality tests validated against [OEIS A005235](https://oeis.org/A005235); Fortunate calculations verified against known values (n=5→23, n=100→641, etc.).
-
-## Building
-
-```bash
-cargo build --release
-```
-
-## Running
-
-```bash
-./target/release/fortunate
-```
-
-**Interactive menu:**
-
-1. Find Fortunate number (with metrics)
-2. Benchmark different algorithms
-3. Exit
-
-## Performance Benchmarks
-
-### Before Phase 1 Optimizations
-
-| n   | Fortunate # | Time   | Candidates Tested |
-| --- | ----------- | ------ | ----------------- |
-| 100 | 641         | ~43ms  | 640               |
-| 200 | 1619        | ~994ms | 1,618             |
-| 300 | 5641        | ~13.3s | 5,640             |
-| 400 | 5051        | ~30.3s | 5,050             |
-
-### After Phase 1 Optimizations (v0.2.0)
-
-| n   | Standard Time | Wheel Factorization | Speedup   | Test Reduction     |
-| --- | ------------- | ------------------- | --------- | ------------------ |
-| 100 | 43.2ms        | 30.6ms              | **1.41x** | 640 → 236 (-63%)   |
-| 200 | 993.8ms       | 656.8ms             | **1.51x** | 1,618 → 593 (-63%) |
-
-**Phase 1 Results:**
-
-- ✅ **Wheel Factorization**: Pre-filters candidates divisible by 2, 3, 5 (reduces search space by ~63%)
-- ✅ **Parallel Infrastructure**: `ParallelFortunateCalculator` ready for future Rayon optimizations (Phase 1.3+)
-- ✅ **35 Tests**: All passing with 100% OEIS A005235 validation through n=31
-- ✅ **Consistent Speedup**: 40-50% improvement across test range
-
-### After Phase 2 Optimizations (v0.3.0)
-
-| n   | Wheel Factorization | Parallel Rayon | Speedup   | vs Original  |
-| --- | ------------------- | -------------- | --------- | ------------ |
-| 100 | 35.9ms              | 19.1ms         | **1.87x** | **2.26x**    |
-| 200 | 675ms               | 235ms          | **2.87x** | **4.23x**    |
-
-**Phase 2 Results:**
-
-- ✅ **Rayon Parallelization**: Batch-based parallel candidate testing leverages multi-core CPUs
-- ✅ **2-3x Speedup**: Achieved target performance improvement over Phase 1 wheel factorization
-- ✅ **Correctness Maintained**: Still finds SMALLEST Fortunate number (OEIS A005235 validated)
-- ✅ **39 Tests**: All passing including 4 new parallel performance/correctness tests
-- ✅ **Thread-Safe**: Atomic counters for metrics tracking across parallel threads
-
-### After Phase 3 Optimizations (v0.4.0)
-
-| n   | Parallel Rayon | Sieved+Parallel | Speedup   | vs Wheel | vs Original |
-| --- | -------------- | --------------- | --------- | -------- | ----------- |
-| 100 | 20.5ms         | 12.7ms          | **1.61x** | **3.62x**| **4.92x**   |
-
-**Phase 3 Results:**
-
-- ✅ **Segmented Sieve**: Eratosthenes sieve pre-filters composites from candidate range
-- ✅ **Hybrid Architecture**: Sieve once, parallel test survivors (sieve+Rayon)
-- ✅ **1.6x Speedup**: Exceeded target 1.3x+ performance improvement over Phase 2
-- ✅ **Efficiency Gain**: ~80% reduction in Miller-Rabin invocations (10,000 → ~1,200 probable primes)
-- ✅ **44 Tests**: All passing including sieve correctness and performance validation
-
-**Observations:**
-
-- Wheel factorization consistently reduces candidates by ~63% (matching theoretical 2×3×5 elimination rate)
-- Actual speedup is ~40-50% (limited by non-candidate work: primorial calculation, setup)
-- Primorial calculation time unchanged (accounts for ~30-40% of total time)
-- Sieve overhead amortized by parallel testing of much smaller candidate set
-- Hybrid approach balances one-time sieve cost with reduced Miller-Rabin workload
-
-- Algorithm choice (20/40/64 rounds) has minimal impact on total time
-  - Finding the candidate dominates computation time
-  - Primality test rounds matter less than primorial magnitude
-
-## Architecture
-
-### Module Organization (Phase 4 Refactoring - v0.4.1)
-
-The codebase is organized into focused modules for maintainability and reusability:
-
-```text
-src/
-├── main.rs              # CLI entry point
-├── lib.rs               # Core traits, error types, calculator implementations
-├── primality.rs         # Miller-Rabin primality testing (83 lines)
-├── sieve.rs             # Segmented Sieve of Eratosthenes (101 lines)
-└── primes.rs            # Pre-computed prime constants (10,000 primes)
-```
-
-**Module Responsibilities:**
-
-- **primality.rs**: `MillerRabin` struct implementing `PrimalityTest` trait
-  - Configurable rounds (fast: 20, standard: 40, thorough: 64)
-  - Deterministic witnesses: [2,3,5,7,11,13,17,19,23,29,31,37]
-  - Zero dependencies (rug::Integer only)
-  
-- **sieve.rs**: `SegmentedSieve` struct for pre-filtering composites
-  - `simple_sieve(limit)` — Generate basis primes
-  - `sieve_range(low, high)` — Sieve candidate range
-  - Reduces Miller-Rabin invocations by ~80%
-  - Zero external dependencies (std only)
-
-- **lib.rs**: Core traits, error handling, four calculator implementations
-  - Trait definitions: `PrimalityTest`, `FortunateCalculator`
-  - Error types: `FortunateError`, `Result<T>`
-  - Metrics tracking: primorial time, test count, total time
-  - Implementations: `PrimeBasedCalculator`, `ParallelFortunateCalculator`, `WheelFortunateCalculator`, `SievedFortunateCalculator`
-  - Public re-exports: `pub use primality::MillerRabin;`, `pub use sieve::SegmentedSieve;`
-
-### Traits (Type-Safe Interfaces)
-
-```rust
-trait PrimalityTest {
-  fn is_prime(&self, n: &Integer) -> bool;
-  fn name(&self) -> &'static str;
-}
-
-trait FortunateCalculator {
-  fn primorial(&self, n: usize) -> Result<Integer>;
-  fn fortunate_number(&self, n: usize) -> Result<u32>;
-  fn fortunate_number_with_metrics(&self, n: usize) -> Result<(u32, Metrics)>;
-}
-```
-
-### Error Handling
-
-Custom `FortunateError` enum with explicit error types:
-
-- `InvalidPrimeIndex` — n exceeds prime list
-- `NoFortunateFound` — no Fortunate within search range
-- `InvalidPrimorial` — calculation error
-
-### Performance Metrics
-
-Track and report:
-
-- Primorial calculation time
-- Primality test count
-- Tests passed
-- Total execution time
-
-## Dependencies
-
-- **rug** — GMP bindings for arbitrary-precision arithmetic
-- **rayon** — Ready for parallel implementations (future)
-- **serde** — Serialization support (future)
-
-## Optimization Exploration
-
-The benchmarks reveal **exponential time growth**. Here are evidence-based optimization strategies:
-
-### 1. **Parallel Candidate Testing** (HIGH PRIORITY - Expected: 4-8x speedup)
-
-**Current bottleneck:** Sequential primality testing of 5,000+ candidates
-
-**Strategy:**
-
-```rust
-use rayon::prelude::*;
-
-// Test candidates in parallel batches
-let result = (2..=max_candidate)
-    .into_par_iter()
-    .find_any(|m| is_prime(&(p_n_sharp.clone() + m)));
-```
-
-**Expected impact:** n=400 from 30s → 4-8s (CPU-bound, scales with cores)
-**Implementation effort:** Low (Rayon handles threading)
-
-## Optimization Roadmap
-
-### Phase 1: Completed ✅ (v0.2.0)
-
-#### 1.1 Parallel Infrastructure (TDD Foundation)
-
-- ✅ Introduced `ParallelFortunateCalculator` struct
-- ✅ Full trait compatibility with sequential implementation
-- ✅ Ready for Rayon parallelization in Phase 1.3+
-
-#### 1.2 Wheel Factorization (COMPLETED - 40-50% speedup)
-
-- ✅ Implemented 2-3-5 wheel with period 30
-- ✅ Reduces candidate search space by ~63%
-- ✅ Verified correct results: OEIS A005235 validation through n=31
-- ✅ Actual speedup: n=100 (1.41x), n=200 (1.51x)
-- ✅ 7 comprehensive tests all passing
-
-**Results:** Wheel factorization consistently reduces candidates by 63% and cuts execution time by 40-50%.
-
-### Phase 2: Planned
-
-#### 2.1 **Parallel Candidate Testing with Rayon** (Expected: 2-4x speedup)
-
-**Current bottleneck:** Primality testing dominates after wheel filtering
-
-**Strategy:**
-
-```rust
-use rayon::prelude::*;
-
-let result = wheel.candidates_up_to(max)
-    .into_par_iter()
-    .find_any(|m| is_prime(&(p_n_sharp.clone() + m)));
-```
-
-**Expected impact:** Linear scaling with CPU cores (2-8 cores → 2-4x speedup)
-**Implementation effort:** Medium (Integer cloning overhead manageable)
-**Validation:** Test equivalence guaranteed by existing 35 tests
-
-#### 2.2 **Segmented Sieve for Candidates** (Expected: 1.5x speedup)
-
-**Strategy:**
-Pre-sieve candidates [2, max] to identify probable primes first, then test in order of likelihood:
-
-```rust
-fn sieve_candidates(max: u32) -> Vec<bool> {
-    let mut is_prime = vec![true; max as usize + 1];
-    for i in 2..=(max as f64).sqrt() as u32 {
-        if is_prime[i as usize] {
-            for j in ((i * i)..=max).step_by(i as usize) {
-                is_prime[j as usize] = false;
-            }
-        }
-    }
-    is_prime
-}
-```
-
-### Phase 3: Future Exploration
-
-- **GPU Acceleration**: CUDA for Miller-Rabin on large n
-- **Batch Processing**: Optimize for multiple n values simultaneously
-- **Extended Prime List**: Generate primorials beyond n=1224 via segmented sieve
-
-### Phase 2.2 Details: Segmented Sieve
-
-**Expected impact:** Test sieved candidates first, massive speedup on partial matches
-**Implementation effort:** Medium
-**Risk:** Low (sieve is proven algorithm)
-
-### 4. **Batch Miller-Rabin with Shared Modular Arithmetic** (LOW PRIORITY - Expected: 1.2x speedup)
-
-**Current bottleneck:** Each candidate re-computes $2^r \mod n$ independently
-
-**Strategy:**
-
-```rust
-// For batch of candidates, reuse exponentiation setup
-fn batch_is_prime(candidates: &[Integer], rounds: usize) -> Vec<bool> {
-    // ... compute common witness bases once, apply to all
-}
-```
-
-**Expected impact:** Cache effects, ~20% faster Miller-Rabin loop
-**Implementation effort:** High (complex modular arithmetic)
-**Risk:** Moderate (easy to introduce bugs in witness scheduling)
-
-### 5. **Lucas Primality Test + Miller-Rabin Hybrid** (MEDIUM PRIORITY - Expected: 1.3x speedup)
-
-**Current bottleneck:** Miller-Rabin alone requires many rounds for certainty
-
-**Strategy:**
-Combine deterministic Lucas test with fast Miller-Rabin:
-
-```rust
-fn is_prime_hybrid(n: &Integer) -> bool {
-    // Fast reject with trial division
-    if trial_division(n, 30) { return false; }
-
-    // Miller-Rabin (20 rounds)
-    if !miller_rabin(n, 20) { return false; }
-
-    // Lucas test (deterministic for small witnesses)
-    lucas_test(n)
-}
-```
-
-**Expected impact:** Fewer false positives, potentially fewer rounds needed
-**Implementation effort:** High (Lucas test is complex)
-**Risk:** Moderate (need proven witness parameters)
-
-### 6. **GPU-Accelerated Primality Testing** (ADVANCED - Expected: 10-100x speedup)
-
-**Current bottleneck:** CPU-only Miller-Rabin loop can run on GPU
-
-**Strategy:**
-Use `rust-gpu` or CUDA bindings to test multiple candidates simultaneously:
-
-```text
-GPU: Test 1000 candidates in parallel
-vs CPU: Test 1 candidate at a time
-```
-
-**Expected impact:** n=400 from 30s → 1-3s (if GPU available)
-**Implementation effort:** Very High (GPU programming, memory management)
-**Risk:** High (GPU availability, portability issues)
-
----
-
-## Recommended Optimization Path
-
-### **Phase 1: Quick Wins (2-3 hours)**
-
-1. Implement parallel candidate testing with Rayon → **4-8x speedup**
-2. Add wheel factorization pre-filtering → **2-3x speedup**
-3. **Combined: n=400 from 30s → 1-2s**
-
-### **Phase 2: Medium Effort (4-6 hours)**
-
-1. Add segmented sieve for candidate range
-2. Implement Lucas test as fallback
-3. **Combined: Additional 1.5-2x speedup** → **n=400 ≈ 0.5s**
-
-### **Phase 3: Advanced (1-2 days)**
-
-1. Benchmark GPU options
-2. Consider C/C++ FFI for critical loops
-3. **Potential: 10-100x total speedup**
-
----
-
-## Benchmark Targets
-
-After each optimization, measure:
-
-```bash
-# Single run
-echo "2\n400\n" | ./target/release/fortunate
-
-# Full suite
-./benchmark.sh
-```
-
-Track speedup ratio:
-
-- **Phase 1 goal:** 4-8x faster
-- **Phase 2 goal:** 8-16x faster total
-- **Phase 3 goal:** 80-160x faster with GPU
+**Test coverage:**
+
+- Primality tests validated against OEIS A005235
+- Fortunate calculations verified (n=5→23, n=100→641, etc.)
+- 39 unit tests covering edge cases
 
 ## Contributing
 
-Want to contribute? **Read this first:**
+### Quick Start
 
-### For Contributors (Start Here)
+1. **Read** [CONTRIBUTING.md](CONTRIBUTING.md) (5 minutes)
+2. **Create feature branch**: `feature/N-description`
+3. **Write test first** (TDD)
+4. **Implement & make test pass**
+5. **Quality gates**: `cargo fmt && cargo clippy && cargo test`
+6. **Create PR** with benchmark results
 
-👉 **[CONTRIBUTING.md](CONTRIBUTING.md)** — Complete workflow guide (5-10 minutes)
+### Key Requirements
 
-- TDD workflow
-- Quality gates
-- PR checklist
-- Common patterns
+- ✅ All tests pass
+- ✅ OEIS A005235 validation (Fortune's conjecture holds)
+- ✅ Benchmark shows improvement (>5% speedup minimum)
+- ✅ No regressions in existing performance
 
-### For Detailed Architecture
+### For More Details
 
-👉 **[DEVELOPMENT.md](DEVELOPMENT.md)** — In-depth guide (30 minutes)
+- **Workflow**: [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Architecture**: [DEVELOPMENT.md](DEVELOPMENT.md)
+- **System prompt** (for AI agents): [SYSTEM_PROMPT.md](SYSTEM_PROMPT.md)
 
-- Project architecture
-- Feature request strategy
-- Testing patterns
-- Design discussion template
+## Project Status
 
-### For AI Agents
+- ✅ PARI/GP integration complete
+- ✅ CLI simplified to non-interactive mode
+- ✅ Dead code cleaned up
+- 📋 Next: Parallel candidate testing (future optimization)
 
-👉 **[SYSTEM_PROMPT.md](SYSTEM_PROMPT.md)** — System instructions for development
+## License
 
-- Guiding principles
-- Workflow validation
-- Red flags and scenarios
-
-### Quick Summary
-
-This project follows **Test-Driven Development (TDD)** with **OEIS validation** and **benchmark proof**:
-
-1. **Create issue** with clear description
-2. **Discuss design** (critical for algorithms)
-3. **Create feature branch** (`feature/N-description`)
-4. **Write test first** (TDD)
-5. **Implement** and make test pass
-6. **Quality gates**: `cargo fmt`, `cargo clippy`, `cargo test`
-7. **Benchmark**: `./benchmark.sh` (no regressions)
-8. **Merge & tag** (bump version, update CHANGELOG)
-
-### Key Rules
-
-- ✅ **OEIS validation** — Fortune's conjecture must hold
-- ✅ **Benchmark proof** — Optimizations show >5% improvement
-- ✅ **No regressions** — All tests pass, benchmarks don't slow down
-- ❌ **No shortcuts** — TDD is mandatory, not optional
-
-### Questions?
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow or [DEVELOPMENT.md](DEVELOPMENT.md) for deep dives.
+See LICENSE file
