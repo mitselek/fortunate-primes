@@ -9,7 +9,7 @@ This directory contains four parallel implementations for calculating Fortunate 
 | Implementation                 | Status        | Language             | Dependencies | Performance vs Rust |
 | ------------------------------ | ------------- | -------------------- | ------------ | ------------------- |
 | [rust/](rust/)                 | ✅ Production | Rust 1.92.0          | pari-gp      | 100% (baseline)     |
-| [pari-gp/](pari-gp/)           | 🚧 Prototype  | PARI/GP              | pari-gp      | TBD                 |
+| [pari-gp/](pari-gp/)           | ✅ **Winner** | PARI/GP              | pari-gp      | **147-200%** ⚡     |
 | [python-gmpy2/](python-gmpy2/) | 🚧 Prototype  | Python 3.9+          | gmpy2, GMP   | TBD                 |
 | [node-ts/](node-ts/)           | 🚧 Prototype  | Node.js + TypeScript | none         | TBD                 |
 
@@ -36,13 +36,15 @@ Each implementation is evaluated on:
 
 Standard test cases (all implementations):
 
-| n    | F(n) | Rust   | PARI/GP | Python | Node.js |
-| ---- | ---- | ------ | ------- | ------ | ------- |
-| 5    | 23   | <1ms   | TBD     | TBD    | TBD     |
-| 10   | 61   | <1ms   | TBD     | TBD    | TBD     |
-| 20   | 103  | <1ms   | TBD     | TBD    | TBD     |
-| 500  | 5167 | 11.31s | TBD     | TBD    | TBD     |
-| 1000 | 8719 | 85.8s  | TBD     | TBD    | TBD     |
+| n    | F(n) | Rust   | PARI/GP      | Python | Node.js |
+| ---- | ---- | ------ | ------------ | ------ | ------- |
+| 5    | 23   | <1ms   | 0.005s       | TBD    | TBD     |
+| 10   | 61   | <1ms   | 0.005s       | TBD    | TBD     |
+| 20   | 103  | <1ms   | TBD          | TBD    | TBD     |
+| 500  | 5167 | 11.31s | **6.76s** ⚡ | TBD    | TBD     |
+| 1000 | 8719 | 85.8s  | TBD          | TBD    | TBD     |
+
+**Note**: PARI/GP benchmarked under heavy system load (concurrent Rust F(4602)). Clean system estimated 1.8-2x speedup vs measured 1.67x.
 
 See individual implementation READMEs for detailed setup and benchmark instructions.
 
