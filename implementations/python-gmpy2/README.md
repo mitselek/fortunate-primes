@@ -1,19 +1,17 @@
 # Python + gmpy2 Implementation
 
-**Status**: 🚧 Prototype
+**Status**: ✅ **Production (Winner!)** 🏆
 
 ## Overview
 
-Python implementation using gmpy2 (GMP bindings) for big integer arithmetic and primality testing, eliminating PARI/GP subprocess overhead.
+Python implementation using gmpy2 (GMP bindings) for big integer arithmetic and primality testing. **Fastest implementation tested** - 9-22x faster than Rust, 2-5x faster than PARI/GP.
 
-## Motivation
+## Why Python Wins
 
-Python with gmpy2 could match PARI/GP performance (both use GMP) while offering:
-
-- More accessible language for contributors
-- No subprocess spawning overhead
-- Native Python parallelism (multiprocessing/concurrent.futures)
-- Rich ecosystem for tooling and visualization
+1. **gmpy2 efficiency**: GMP backend (same as PARI/GP) with minimal Python overhead
+2. **Multiprocessing advantage**: Separate processes avoid GIL entirely, no thread contention
+3. **Optimal batch sizing**: Smaller batches (50) better suited to Python's IPC model
+4. **Process isolation**: Handles concurrent system load better than threading
 
 ## Setup
 
@@ -45,49 +43,67 @@ brew install python gmp
 
 **Python Version**: 3.9+ (recommended 3.11+ for performance)
 
-## Expected Usage
+## Usage
 
 ```bash
 # Activate environment
 source venv/bin/activate
 
 # Run calculator
-python fortunate.py 500
+python fortunate.py 500     # Calculate F(500)
+python fortunate.py 1000    # Calculate F(1000)
+
+# Run tests
+pytest test_fortunate.py -v
 
 # Deactivate when done
 deactivate
 ```
 
-## Prototype Tasks
+## Benchmarks (Clean System)
 
-- [ ] Implement parallel primorial + search using multiprocessing
-- [ ] Use gmpy2.is_prime() for primality testing (Baillie-PSW)
-- [ ] Implement progress reporting
-- [ ] Benchmark vs Rust baseline (n=500, n=1000)
-- [ ] Evaluate code complexity and maintainability
-- [ ] Compare memory efficiency
+| n    | F(n)  | Time        | vs Rust   | vs PARI/GP | OEIS ✓ |
+| ---- | ----- | ----------- | --------- | ---------- | ------ |
+| 500  | 5167  | **1.25s**   | **9.0x**  | 5.4x       | ✅     |
+| 1000 | 8719  | **3.86s**   | **22.2x** | 17.8x      | ✅     |
+| 2000 | 51137 | **12m 5s**  | -         | -          | ✅     |
+| 2500 | 25643 | **2m 52s**  | **9.6x**  | -          | ✅     |
+| 3000 | 27583 | **45.2s**   | **65x**   | -          | ✅     |
 
-## Expected Benchmarks
+See [BENCHMARKS.md](BENCHMARKS.md) for detailed analysis.
 
-| n    | F(n) | Time (estimated) | vs Rust |
-| ---- | ---- | ---------------- | ------- |
-| 500  | 5167 | TBD              | TBD     |
-| 1000 | 8719 | TBD              | TBD     |
+**System**: 16 cores, clean system (load ~1-2), Python 3.12.3, gmpy2 2.1.5
 
-## Expected Benefits
+## Benefits
 
-- **Performance**: gmpy2 uses GMP (same as PARI/GP), should be equivalent
-- **No subprocesses**: Direct function calls instead of process spawning
-- **Accessibility**: Python more familiar than Rust for many developers
-- **Type safety**: Optional with type hints + mypy
-- **Rich tooling**: pytest, black, pylint, mypy
+- ✅ **Fastest implementation tested** (9-22x faster than Rust)
+- ✅ Excellent code clarity (~130 lines vs Rust's 200+)
+- ✅ Rich ecosystem (pytest, type hints, OEIS validation)
+- ✅ Easy to install (`pip install gmpy2`)
+- ✅ Process isolation handles concurrent load well
 
-## Expected Trade-offs
+## Trade-offs
 
-- **Startup time**: Python interpreter slower than compiled Rust
-- **Memory**: Python overhead (~50 MB) vs Rust (~2 MB)
-- **Distribution**: Requires Python runtime vs single static binary
-- **GIL concerns**: Mitigated by using multiprocessing (separate processes)
+- ⚠️ Requires system with adequate RAM for multiple processes
+- ⚠️ Performance degrades ~2.5x under heavy system load
+- ⚠️ Requires Python runtime (vs Rust static binary)
+
+## Implementation Details
+
+**Architecture**: Parallel batch search using `multiprocessing.Pool`
+
+```text
+                    ┌─ Worker 1 (m=3-52) ──────┐
+Main ─► primorial ─►├─ Worker 2 (m=53-102) ───├──► First prime found
+                    ├─ Worker 3 (m=103-152) ──┤
+                    └─ Worker N (m=...) ──────┘
+```
+
+**Key components**:
+
+- `compute_primorial()`: Calculate primorial(n) using gmpy2.mpz
+- `test_batch()`: Test range [start, end) for primality
+- `find_fortunate()`: Orchestrate parallel search with early termination
 
 ## Dependencies
 
@@ -96,21 +112,16 @@ deactivate
 gmpy2>=2.1.5
 ```
 
-Optional development tools:
+Development tools:
 
 ```txt
-mypy>=1.0.0      # Type checking
-pytest>=7.0.0    # Testing
-black>=23.0.0    # Formatting
+pytest>=7.0.0    # Testing (19 tests)
 ```
 
 ## References
 
+- Detailed benchmarks: [BENCHMARKS.md](BENCHMARKS.md)
+- Main project: [../../README.md](../../README.md)
 - gmpy2 documentation: <https://gmpy2.readthedocs.io/>
 - GMP library: <https://gmplib.org/>
-- Python multiprocessing: <https://docs.python.org/3/library/multiprocessing.html>
-- Rust baseline: [../rust/](../rust/)
-
-## Status
-
-Awaiting prototype implementation. Directory structure ready.
+- OEIS A005235: <https://oeis.org/A005235>

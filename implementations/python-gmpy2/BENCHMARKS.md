@@ -49,26 +49,46 @@ Testing different batch sizes to find optimal work distribution:
 - **Moderate load resilience**: **7.3x faster than PARI/GP** (9.44s vs 68.9s), though PARI/GP was under heavier load (30-36 vs current 18-19)
 - **Multiprocessing advantage**: Separate processes handle concurrent workload better than PARI/GP's threads
 
-## F(2000) Extended Scaling Test
+## F(2000) and F(2500) Clean System Benchmarks
 
-Testing large n to validate scaling characteristics:
+Re-run on clean system to establish true baseline performance:
 
-| batch_size | Real Time  | User Time | Sys Time | CPU Util | Rounds | System Load |
-| ---------- | ---------- | --------- | -------- | -------- | ------ | ----------- |
-| 50         | **26m 6s** | 150m 8s   | 0m 19s   | 5.75x    | 64     | 25.94       |
+| n    | batch_size | Real Time    | Rounds | Result | System Load | Speedup vs Load |
+| ---- | ---------- | ------------ | ------ | ------ | ----------- | --------------- |
+| 2000 | 50         | **12m 5s**   | 64     | 51137  | ~1-2        | **2.15x**       |
+| 2500 | 50         | **2m 52s**   | 33     | 25643  | ~1-2        | **1.01x**       |
 
-**Result: F(2000) = 51137** (verified against OEIS A005235) ✅
+**Results verified against OEIS A005235** ✅
 
 ### Analysis
 
-- **Primorial size**: 7808 digits (vs 3393 for F(1000), 1520 for F(500))
-- **Improved parallelism**: 5.75x CPU utilization (up from 3.8-4.0x for smaller n)
-- **Scaling wall hit**: 160x slower than F(1000) (1566s vs 9.8s)
-- **Primality testing dominates**: Miller-Rabin on ~7800-digit candidates is expensive
-- **Process isolation advantage**: Maintained performance under heavy system load (25.94 average)
-- **Rounds to convergence**: 64 rounds, testing ~51,200 total candidates
+- **F(2000) improvement**: 12m 5s (clean) vs 26m 6s (load 25.94) = **2.15x faster**
+- **F(2500) consistency**: 2m 52s (clean) vs 2m 50s (load 25.94) = essentially same performance
+- **Load resilience varies**: F(2500) handles load well, F(2000) shows significant degradation
+- **Primorial size**: F(2000) = 7808 digits, F(2500) = ~9600 digits
+- **Primality testing dominates**: Miller-Rabin on 8000-10000 digit candidates is the bottleneck
 
-**Key insight**: Linear scaling breaks down beyond n≈1500. Primality testing cost grows significantly with candidate size, overwhelming the primorial computation time.
+**Key insight**: Smaller n (F(2500)) maintains performance under load, but larger n (F(2000) with more rounds) suffers from scheduler contention. Clean system provides 2x improvement for multi-minute computations.
+
+## F(3000) Clean System Benchmark
+
+Testing on clean system to validate batch size recommendation:
+
+| batch_size | Real Time   | User Time | Sys Time | CPU Util | Rounds | Result |
+| ---------- | ----------- | --------- | -------- | -------- | ------ | ------ |
+| 50         | **45.22s**  | 6m 20s    | 0.19s    | 8.42x    | 35     | 27583  |
+| 150        | 1m 40.65s   | 13m 23s   | 0.15s    | 7.97x    | 12     | 27583  |
+
+**Result: F(3000) = 27583** ✅
+
+### Analysis
+
+- **batch_size=50 wins again**: 2.2x faster than batch_size=150 (45s vs 100s)
+- **Excellent CPU parallelism**: 8.4x on clean system (up from 3.8-5.8x under load)
+- **Exceptional scaling**: F(3000) in 45s vs F(2500) in 2m50s under load - shows clean system advantage
+- **Fewer rounds paradox**: batch_size=150 uses fewer rounds (12 vs 35) but takes longer due to larger wasted work per round
+
+**Key insight**: Smaller batches (50) enable faster early termination. With batch_size=150, each round tests 2400 candidates (16×150), but when the fortunate number is found mid-batch, significant work is wasted.
 
 ## Performance Comparison
 

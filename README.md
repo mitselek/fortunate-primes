@@ -121,14 +121,13 @@ See [benchmarks/README.md](benchmarks/README.md) for details.
 | ---- | ----- | ------------ | ---------- | ---------- | ---------------------- |
 | 500  | 5167  | **1.25s**    | 6.8s       | 11.3s      | **9.0x**               |
 | 1000 | 8719  | **3.86s**    | 68.9s\*    | 85.8s      | **22.2x**              |
-| 2500 | 25643 | **2m 50s**   | Not tested | 27.4m      | **9.6x**               |
-| 2000 | 51137 | **26m 6s\*** | Not tested | Not tested | -                      |
-| 3000 | 27583 | Not tested   | Not tested | 49.0m      | -                      |
+| 2000 | 51137 | **12m 5s**   | Not tested | Not tested | -                      |
+| 2500 | 25643 | **2m 52s**   | Not tested | 27.4m      | **9.6x**               |
+| 3000 | 27583 | **45.2s**    | Not tested | 49.0m      | **65x**                |
 | 4601 | 56611 | Not tested   | Not tested | 5.0h       | -                      |
 | 4602 | 62207 | Not tested   | Not tested | 5h 52m     | -                      |
 
-\* PARI/GP F(1000) under heavy load (30-36); would be faster on clean system  
-\*\* Python F(2000) under heavy load (25.94); would be faster on clean system
+\* PARI/GP F(1000) under heavy load (30-36); would be faster on clean system
 
 **Hardware**: AMD Ryzen 7 2700 (8 physical cores, 16 logical CPUs with SMT)
 
@@ -139,7 +138,7 @@ See [benchmarks/README.md](benchmarks/README.md) for details.
 - ✅ **Rust baseline**: Optimized with worker-count-aware adaptive batching
 - ✅ **Issue #12**: Project restructured for parallel comparison
 - 📊 **Benchmarking**: Comprehensive clean-system and load-testing complete
-- 🎯 **Winner**: Python + gmpy2 (9-22x faster than Rust for n ≤ 2500)
+- 🎯 **Winner**: Python + gmpy2 (9-65x faster than Rust for n ≤ 3000)
 
 ## Key Findings
 

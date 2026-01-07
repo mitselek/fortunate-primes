@@ -1,15 +1,21 @@
 # Pure PARI/GP Implementation
 
-**Status**: ✅ **Working - 1.5-2x faster than Rust**  
+**Status**: ✅ Production (Runner-up)  
 **Issue**: [#11](https://github.com/mitselek/fortunate-primes/issues/11)
 
 ## Overview
 
-Single-process PARI/GP implementation using native parallelism (`parapply()`) that **outperforms Rust orchestration by 1.67x (measured under load) to ~2x (estimated on clean system)**. Achieves superior performance through architectural simplicity: no subprocess spawning, no IPC overhead, native parallel primitives.
+Single-process PARI/GP implementation using native parallelism (`parapply()`) that **outperforms Rust by 1.67x**. Achieves strong performance through architectural simplicity: no subprocess spawning, no IPC overhead, native parallel primitives.
 
-## Motivation
+**Note**: Python+gmpy2 is now the fastest implementation (5-17x faster than PARI/GP). See [main README](../../README.md) for comparison.
 
-Current Rust implementation spawns 15 PARI/GP subprocesses with IPC overhead. PARI/GP has built-in parallel functions that could handle everything internally, achieving architectural simplicity (askesis).
+## Why Use PARI/GP?
+
+- ✅ Second fastest implementation (1.67x faster than Rust)
+- ✅ Architectural simplicity (~50 lines vs Rust's 200+)
+- ✅ Single binary, no orchestration overhead
+- ✅ Good load resilience (maintains 8-9x parallelism under load)
+- ⚠️ GP scripting less familiar to most developers
 
 ## Expected Architecture
 

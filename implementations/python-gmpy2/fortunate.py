@@ -14,6 +14,7 @@ import gmpy2  # type: ignore
 from multiprocessing import Pool, cpu_count
 from typing import Tuple, Optional
 import sys
+import time
 
 
 def test_batch(args: Tuple[int, int, int]) -> Optional[int]:
@@ -71,6 +72,7 @@ def fortunate_batch(n: int, batch_size: int = 100, verbose: bool = True) -> int:
         >>> fortunate_batch(10, batch_size=100)
         61
     """
+    start_time = time.time()
     num_workers = cpu_count()
     
     if verbose:
@@ -101,8 +103,10 @@ def fortunate_batch(n: int, batch_size: int = 100, verbose: bool = True) -> int:
             # Check if any worker found a prime
             for result in results:
                 if result is not None:
+                    elapsed = time.time() - start_time
                     if verbose:
-                        print(f"F({n}) = {result} (found in round {round_num})")
+                        print(f"\nF({n}) = {result} (found in round {round_num})")
+                        print(f"Elapsed time: {elapsed:.2f}s")
                     return result
 
 
@@ -110,14 +114,16 @@ def main():
     """Command-line interface"""
     if len(sys.argv) < 2:
         print("Usage: python fortunate.py <n> [batch_size]")
-        print("Example: python fortunate.py 500 100")
+        print("Example: python fortunate.py 500 50")
         sys.exit(1)
     
     n = int(sys.argv[1])
-    batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 100
+    batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 50
     
     result = fortunate_batch(n, batch_size=batch_size)
-    print(f"\nResult: F({n}) = {result}")
+    print(f"\n{'='*50}")
+    print(f"Result: F({n}) = {result}")
+    print(f"{'='*50}")
 
 
 if __name__ == "__main__":
