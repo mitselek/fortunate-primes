@@ -13,7 +13,7 @@ use std::thread;
 use std::time::Instant;
 
 /// Initial batch size
-const INITIAL_BATCH_SIZE: u64 = 100;
+const INITIAL_BATCH_SIZE: u64 = 1;
 
 /// Compute contiguous lower bound from start=2 by finding all touching intervals with no result
 fn compute_contiguous_lower_bound(completed_no_result: &BTreeMap<u64, u64>) -> u64 {
@@ -43,6 +43,9 @@ fn compute_contiguous_lower_bound(completed_no_result: &BTreeMap<u64, u64>) -> u
 pub fn find_fortunate(n: usize) -> Result<u64, String> {
     let num_workers = num_cpus::get().saturating_sub(1).max(1);
     let mut reporter = ProgressReporter::new(n, 2.0, 1.0);
+    
+    // Calculate adaptive threshold: 60 seconds divided by number of workers
+    let adaptive_threshold_secs = 60.0 / num_workers as f64;
 
     let (work_tx, work_rx) = bounded::<(u64, u64)>(num_workers * 2);
     let (result_tx, result_rx) = bounded::<(u64, u64, Instant, Option<u64>)>(num_workers * 2);
@@ -138,10 +141,10 @@ pub fn find_fortunate(n: usize) -> Result<u64, String> {
 
             // Adaptive sizing: double batch size only if:
             // 1. No result found
-            // 2. Batch completed in under 30 seconds
+            // 2. Batch completed in under threshold (60s / num_workers)
             // 3. Current batch_size <= completed batch size (only grow if we're behind)
             if result.is_none()
-                && batch_duration.as_secs_f64() < 30.0
+                && batch_duration.as_secs_f64() < adaptive_threshold_secs
                 && batch_size <= completed_batch_size
             {
                 batch_size = batch_size.saturating_mul(2);
