@@ -51,21 +51,23 @@
 
 ### Benchmark Results
 
-| batch_size | Real Time | User Time | Sys Time | CPU Total | Parallelism | Rounds | Notes |
-|------------|-----------|-----------|----------|-----------|-------------|--------|-------|
-| 100        | 71.6s     | 624.6s    | 0.839s   | 625.5s    | 8.73x       | 3      | Too small for n=1000 |
-| **150**    | **68.9s** | **620.8s**| **0.797s**| **621.6s**| **9.03x**   | **2**  | **Optimal** |
-| 200        | 88.0s     | 808.9s    | 0.984s   | 809.9s    | 9.20x       | 2      | Overcoordination |
+| batch_size | Real Time | User Time  | Sys Time   | CPU Total  | Parallelism | Rounds | Notes                |
+| ---------- | --------- | ---------- | ---------- | ---------- | ----------- | ------ | -------------------- |
+| 100        | 71.6s     | 624.6s     | 0.839s     | 625.5s     | 8.73x       | 3      | Too small for n=1000 |
+| **150**    | **68.9s** | **620.8s** | **0.797s** | **621.6s** | **9.03x**   | **2**  | **Optimal**          |
+| 200        | 88.0s     | 808.9s     | 0.984s     | 809.9s     | 9.20x       | 2      | Overcoordination     |
 
 ### Analysis
 
 **Optimal batch_size = 150** for n=1000:
+
 - Minimizes real time (68.9s)
 - Best parallelism efficiency (9.03x speedup)
 - Completed in only 2 rounds
 - Primorial(1000) = 3393 digits (significantly larger than F(500))
 
 **Batch size scaling insight**: As n increases, optimal batch_size increases:
+
 - F(500): batch_size=100 optimal (primorial 716 digits)
 - F(1000): batch_size=150 optimal (primorial 3393 digits)
 - Pattern: Larger primorial → more expensive primality tests → justify larger batches
@@ -89,12 +91,13 @@
 **Rust System**: Clean system (no concurrent workload)  
 **PARI/GP System**: Heavy load (concurrent Rust F(4602), 17 total processes)
 
-| Implementation | Workers/Threads | F(500) Time | F(1000) Time | Avg Speedup | System Load |
-| -------------- | --------------- | ----------- | ------------ | ----------- | ----------- |
-| Rust 0.1.0     | 15 workers      | 11.31s      | 85.8s        | 1.0x        | Clean (~16) |
-| **PARI/GP**    | 32 threads      | **6.8s**    | **68.9s**    | **1.25x**   | Heavy (18-36)|
+| Implementation | Workers/Threads | F(500) Time | F(1000) Time | Avg Speedup | System Load   |
+| -------------- | --------------- | ----------- | ------------ | ----------- | ------------- |
+| Rust 0.1.0     | 15 workers      | 11.31s      | 85.8s        | 1.0x        | Clean (~16)   |
+| **PARI/GP**    | 32 threads      | **6.8s**    | **68.9s**    | **1.25x**   | Heavy (18-36) |
 
 **Speedup by test case:**
+
 - F(500): 1.67x faster (11.31s → 6.8s)
 - F(1000): 1.25x faster (85.8s → 68.9s)
 

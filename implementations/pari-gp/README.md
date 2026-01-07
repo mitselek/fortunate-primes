@@ -94,22 +94,23 @@ fortunate(500)
 
 ### F(1000) Performance (batch strategy)
 
-| batch_size | Real Time | CPU Time   | Rounds | Result |
-| ---------- | --------- | ---------- | ------ | ------ |
-| 100        | 71.6s     | 624.6s     | 3      | 8719   |
+| batch_size | Real Time | CPU Time   | Rounds | Result   |
+| ---------- | --------- | ---------- | ------ | -------- |
+| 100        | 71.6s     | 624.6s     | 3      | 8719     |
 | **150**    | **68.9s** | **620.8s** | **2**  | **8719** |
-| 200        | 88.0s     | 808.9s     | 2      | 8719   |
+| 200        | 88.0s     | 808.9s     | 2      | 8719     |
 
 **Optimal**: batch_size=150 for n~1000
 
 ### vs Rust Comparison
 
-| Implementation | F(500) Time | F(1000) Time | Workers | Avg Speedup |
-| -------------- | ----------- | ------------ | ------- | ----------- |
+| Implementation | F(500) Time | F(1000) Time | Workers | Avg Speedup     |
+| -------------- | ----------- | ------------ | ------- | --------------- |
 | Rust 0.1.0     | 11.31s      | 85.8s        | 15      | 1.0x (baseline) |
-| **PARI/GP**    | **6.8s**    | **68.9s**    | **32**  | **1.25x** |
+| **PARI/GP**    | **6.8s**    | **68.9s**    | **32**  | **1.25x**       |
 
 **Speedup by test case:**
+
 - F(500): 1.67x faster (11.31s → 6.8s)
 - F(1000): 1.25x faster (85.8s → 68.9s)
 
