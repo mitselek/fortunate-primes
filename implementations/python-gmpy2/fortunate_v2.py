@@ -1,18 +1,19 @@
 """
 Fortunate Numbers Calculator - Python + gmpy2 implementation v2.
 
-Enhanced with Rust-style early termination and progress reporting:
+Enhanced with Rust-style early termination and adaptive batch sizing:
 - Channel-based work distribution (like Rust's crossbeam channels)
 - Stop dispatching when first candidate found
 - Only wait for batches needed to close [lower_bound; candidate] gap
-- Interval notation progress: F(n) : [lower; upper] [batch_start+size] (time)
-
-Uses gmpy2 (GMP bindings) for efficient big integer arithmetic and
-primality testing, with multiprocessing for parallel worker distribution.
+- Adaptive batch sizing: grow when fast, shrink when slow
+- Logs EVERY batch completion
+- **Firoozbakht optimization**: Start at p_{n+1} since F(n) ≥ p_{n+1}
+  (all offsets 2..p_n are composite - they share a prime factor with primorial(n))
 
 References:
 - OEIS A005235: https://oeis.org/A005235
 - Fortune's conjecture: All Fortunate numbers are prime
+- Firoozbakht (2003): F(n) > p_{n+1} - 1 (OEIS A005235 comment)
 - gmpy2 docs: https://gmpy2.readthedocs.io/
 """
 
@@ -23,26 +24,21 @@ import sys
 import time
 
 
-def test_batch(args: Tuple[int, int, int]) -> Tuple[int, int, Optional[int]]:
+# =============================================================================
+# Worker Functions (run in separate processes)
+# =============================================================================
+
+def test_batch(n: int, start: int, batch_size: int) -> Tuple[int, int, Optional[int]]:
     """
-    Worker function: Test batch [start, start+batch_size) for primality.
-    
-    Each worker recomputes the primorial independently (acceptable overhead
-    vs IPC serialization cost for large integers).
-    
-    Args:
-        args: Tuple of (n, start, batch_size)
+    Test batch [start, start+batch_size) for primality.
     
     Returns:
-        Tuple of (batch_start, batch_end, result) where result is the first m 
+        (batch_start, batch_end, result) where result is the first m 
         where primorial(n) + m is prime, or None if batch exhausted
     """
-    n, start, batch_size = args
-    
     # Compute primorial(n) = product of first n primes
-    # Generate first n primes using gmpy2.next_prime()
     pn: int = 1
-    p: int = 2  # First prime
+    p: int = 2
     for _ in range(n):
         pn *= p
         p = int(gmpy2.next_prime(p))  # type: ignore[attr-defined]
@@ -50,199 +46,322 @@ def test_batch(args: Tuple[int, int, int]) -> Tuple[int, int, Optional[int]]:
     # Test candidates in this batch
     end = start + batch_size
     for m in range(start, end):
-        candidate = pn + m
-        # Use probabilistic primality test (25 rounds Miller-Rabin)
-        if gmpy2.is_prime(candidate, 25):  # type: ignore[attr-defined]
+        if gmpy2.is_prime(pn + m, 25):  # type: ignore[attr-defined]
             return (start, end, m)
     
     return (start, end, None)
 
 
-def worker(work_queue: "Queue[Optional[Tuple[int, int, int]]]", result_queue: "Queue[Tuple[int, int, Optional[int]]]") -> None:
-    """Worker process that pulls batches from work queue and reports results."""
+def worker(work_queue: "Queue[Optional[Tuple[int, int, int]]]", 
+           result_queue: "Queue[Tuple[int, int, Optional[int]]]") -> None:
+    """Worker process: pull batches from queue, push results back."""
     while True:
         try:
-            batch_args = work_queue.get(timeout=0.1)
-            if batch_args is None:  # Poison pill
+            args = work_queue.get(timeout=0.1)
+            if args is None:  # Poison pill
                 break
-            result = test_batch(batch_args)
-            result_queue.put(result)
+            n, start, size = args
+            result_queue.put(test_batch(n, start, size))
         except:
             continue
 
 
+# =============================================================================
+# Pure Helper Functions
+# =============================================================================
+
 def format_duration(seconds: float) -> str:
-    """Format duration as human-readable string matching Rust output."""
+    """Format duration as human-readable string."""
     if seconds < 1.0:
         return f"{seconds * 1000:.0f}ms"
     elif seconds < 60.0:
         return f"{seconds:.2f}s"
     else:
-        mins = seconds / 60.0
-        return f"{mins:.2f}m"
+        return f"{seconds / 60.0:.2f}m"
 
 
-def fortunate_streaming(n: int, batch_size: int = 1, verbose: bool = True, adaptive: bool = True) -> int:
+def compute_min_offset(n: int) -> int:
     """
-    Find Fortunate number F(n) using channel-based parallel search with adaptive batch sizing.
+    Compute the minimum possible offset for F(n).
     
-    Mimics Rust's architecture: main thread dispatches work, workers report results,
-    stops dispatching when candidate found, waits only for gap-closing batches.
+    By Firoozbakht (2003): F(n) >= p_{n+1} because all offsets m where
+    2 <= m <= p_n are composite (they share a prime factor with primorial(n)).
     
-    Adaptive batch sizing dynamically adjusts batch size based on completion times:
-    - Grows when batches complete too quickly (< target_time / tk)
-    - Shrinks when batches complete too slowly (> target_time * tk)
-    - Targets optimal batch duration for maximum throughput
+    Returns:
+        p_{n+1}: The (n+1)th prime, which is the first possible Fortunate offset.
+    """
+    p = 2
+    for _ in range(n):
+        p = int(gmpy2.next_prime(p))  # type: ignore[attr-defined]
+    return p  # This is p_{n+1}
+
+
+def compute_lower_bound(completed: Dict[int, int], min_offset: int = 2) -> int:
+    """
+    Find the contiguous lower bound from completed batches.
+    
+    The lower bound is the highest M where all [min_offset, M) have been tested.
+    """
+    if not completed:
+        return min_offset
+    lower = min_offset
+    for start in sorted(completed.keys()):
+        if start <= lower:
+            lower = max(lower, completed[start])
+        else:
+            break  # Gap in coverage
+    return lower
+
+
+def adjust_batch_size(
+    completion_time: float,
+    recent_batch_size: int,
+    current_batch_size: int,
+    target_time: float,
+    tk: float
+) -> int:
+    """
+    Adjust batch size based on completion time.
+    
+    Algorithm (bidirectional):
+    - Too fast (< target/tk) AND recent >= current: GROW
+    - Too slow (> target*tk) AND recent <= current: SHRINK
+    - Otherwise: keep current
+    
+    The recent_batch_size check filters out stale batches:
+    - Stale small batches (from before growth) shouldn't trigger shrinking
+    - Stale large batches (from before shrinking) shouldn't trigger growth
+    """
+    if completion_time < target_time / tk:
+        # Too fast - grow if this batch reflects current state
+        if recent_batch_size >= current_batch_size:
+            return int(recent_batch_size * tk)
+    elif completion_time > target_time * tk:
+        # Too slow - shrink if this batch reflects current state  
+        if recent_batch_size <= current_batch_size:
+            return max(1, int(recent_batch_size / tk))
+    return current_batch_size
+
+
+# =============================================================================
+# Search State Class
+# =============================================================================
+
+class SearchState:
+    """Encapsulates mutable state for parallel search."""
+    
+    def __init__(self, batch_size: int = 1, min_offset: int = 2):
+        self.next_batch_size = batch_size  # Size for future dispatches
+        self.prev_batch_size = batch_size  # For detecting changes
+        self.next_offset = min_offset  # Start at p_{n+1} (Firoozbakht optimization)
+        self.min_offset = min_offset  # Store for lower_bound calculation
+        self.best_candidate: Optional[int] = None
+        self.completed: Dict[int, int] = {}  # {batch_start: batch_end}
+        self.dispatch_times: Dict[int, float] = {}  # {batch_start: time}
+        self.in_flight = 0
+    
+    @property
+    def lower_bound(self) -> int:
+        return compute_lower_bound(self.completed, self.min_offset)
+    
+    def is_done(self) -> bool:
+        """True when gap is closed: lower_bound >= best_candidate."""
+        return self.best_candidate is not None and self.lower_bound >= self.best_candidate
+    
+    def should_dispatch(self) -> bool:
+        """True if we should send more work."""
+        return self.best_candidate is None or self.next_offset < self.best_candidate
+    
+    def dispatch(self, queue: "Queue[Optional[Tuple[int, int, int]]]", n: int) -> bool:
+        """Send one batch to work queue. Returns True if dispatched."""
+        try:
+            queue.put((n, self.next_offset, self.next_batch_size), timeout=0.01)
+            self.dispatch_times[self.next_offset] = time.time()
+            self.next_offset += self.next_batch_size
+            self.in_flight += 1
+            return True
+        except:
+            return False
+    
+    def record_result(self, batch_start: int, batch_end: int, 
+                      result: Optional[int]) -> float:
+        """
+        Record a batch result, return completion time.
+        Updates best_candidate or completed map.
+        """
+        self.in_flight -= 1
+        
+        # Calculate completion time
+        completion_time = 0.0
+        if batch_start in self.dispatch_times:
+            completion_time = time.time() - self.dispatch_times.pop(batch_start)
+        
+        # Update state
+        if result is not None:
+            if self.best_candidate is None or result < self.best_candidate:
+                self.best_candidate = result
+        else:
+            self.completed[batch_start] = batch_end
+        
+        return completion_time
+
+
+# =============================================================================
+# Progress Reporting
+# =============================================================================
+
+def log_batch(
+    n: int,
+    state: SearchState,
+    batch_start: int,
+    batch_size: int,
+    completion_time: float,
+    elapsed: float,
+    batch_size_changed: bool
+) -> None:
+    """Log a single batch completion to stderr."""
+    bounds = f"[{state.lower_bound}; {state.best_candidate or '?'}]"
+    comp_str = format_duration(completion_time) if completion_time > 0 else "?"
+    elapsed_str = format_duration(elapsed)
+    
+    msg = f"F({n}) : {bounds} [{batch_start}+{batch_size}] ({comp_str}) ({elapsed_str})"
+    if batch_size_changed:
+        msg += f" next_batch_size={state.next_batch_size}"
+    
+    print(msg, file=sys.stderr, flush=True)
+
+
+# =============================================================================
+# Main Search Loop (extracted for low complexity)
+# =============================================================================
+
+def run_search(
+    n: int,
+    state: SearchState,
+    work_queue: "Queue[Optional[Tuple[int, int, int]]]",
+    result_queue: "Queue[Tuple[int, int, Optional[int]]]",
+    start_time: float,
+    adaptive: bool,
+    target_time: float,
+    tk: float,
+    verbose: bool
+) -> int:
+    """
+    Run the main search loop until gap is closed.
+    
+    Returns:
+        The Fortunate number F(n)
+    """
+    while state.in_flight > 0:
+        # Wait for next result
+        try:
+            batch_start, batch_end, result = result_queue.get(timeout=0.1)
+        except:
+            continue
+        
+        batch_size = batch_end - batch_start
+        completion_time = state.record_result(batch_start, batch_end, result)
+        elapsed = time.time() - start_time
+        
+        # Adjust batch size on no-result batches (still actively searching)
+        batch_size_changed = False
+        if result is None and adaptive:
+            state.next_batch_size = adjust_batch_size(
+                completion_time, batch_size, state.next_batch_size, target_time, tk
+            )
+            if state.next_batch_size != state.prev_batch_size:
+                batch_size_changed = True
+                state.prev_batch_size = state.next_batch_size
+        
+        # Log EVERY batch
+        if verbose:
+            log_batch(n, state, batch_start, batch_size, 
+                      completion_time, elapsed, batch_size_changed)
+        
+        # Check if done
+        if state.is_done():
+            return state.best_candidate  # type: ignore
+        
+        # Dispatch more work if needed
+        if state.should_dispatch():
+            state.dispatch(work_queue, n)
+    
+    # Should not reach here
+    if state.best_candidate is not None:
+        return state.best_candidate
+    raise RuntimeError(f"No Fortunate number found for F({n})")
+
+
+# =============================================================================
+# Orchestrator
+# =============================================================================
+
+def fortunate_streaming(
+    n: int, 
+    batch_size: int = 1, 
+    verbose: bool = True, 
+    adaptive: bool = True
+) -> int:
+    """
+    Find Fortunate number F(n) using channel-based parallel search.
     
     Args:
         n: Index of the Fortunate number (F(n))
         batch_size: Initial batch size (default 1 for adaptive mode)
-        verbose: Print progress updates
-        adaptive: Enable adaptive batch sizing (default True)
+        verbose: Print progress on every batch
+        adaptive: Enable adaptive batch sizing
     
     Returns:
         F(n): The smallest prime of form primorial(n) + m where m > 1
     """
     start_time = time.time()
-    num_workers = cpu_count() - 1  # Reserve one core for main thread
+    num_workers = cpu_count() - 1
     
-    # Adaptive batch sizing parameters
-    target_time = 60.0 / num_workers  # Target batch completion time in seconds
-    tk = 2.0  # Threshold constant (acceptable range: [target/tk, target*tk])
+    # Compute minimum offset (Firoozbakht: F(n) >= p_{n+1})
+    min_offset = compute_min_offset(n)
+    
+    # Adaptive parameters
+    target_time = 60.0 / num_workers
+    tk = 2.0
     
     if verbose:
-        print(f"Computing F({n})...")
-        if adaptive:
-            print(f"Using {num_workers} workers, adaptive batch sizing (initial={batch_size}, target={target_time:.2f}s)")
-        else:
-            print(f"Using {num_workers} workers, batch_size={batch_size}")
+        mode = f"adaptive (target={target_time:.2f}s, tk={tk})" if adaptive else f"fixed"
+        print(f"Computing F({n}) with {num_workers} workers, batch_size={batch_size}, mode={mode}",
+              file=sys.stderr, flush=True)
+        print(f"Starting at offset {min_offset} (p_{{{n+1}}}), skipping {min_offset - 2} trivial offsets",
+              file=sys.stderr, flush=True)
     
-    # Create work and result queues
+    # Create queues
     work_queue: "Queue[Optional[Tuple[int, int, int]]]" = Queue(maxsize=num_workers * 2)
     result_queue: "Queue[Tuple[int, int, Optional[int]]]" = Queue()
     
-    # Start worker processes
+    # Start workers
     workers: List[Process] = []
     for _ in range(num_workers):
         p = Process(target=worker, args=(work_queue, result_queue))
         p.start()
         workers.append(p)
     
+    # Initialize state and dispatch first batches
+    state = SearchState(batch_size, min_offset)
+    for _ in range(num_workers):
+        state.dispatch(work_queue, n)
+    
     try:
-        best_candidate: Optional[int] = None
-        completed_no_result: Dict[int, int] = {}  # {batch_start: batch_end}
-        dispatched_batches: Dict[int, Tuple[int, float]] = {}  # {batch_start: (batch_size, dispatch_time)}
-        last_report_time: float = start_time
-        report_interval = 1.0
-        initial_delay = 2.0
+        result = run_search(
+            n, state, work_queue, result_queue,
+            start_time, adaptive, target_time, tk, verbose
+        )
         
-        next_offset = 2  # Start from m=2
-        batches_in_flight = 0
-        
-        # Dispatch initial batches
-        for _ in range(num_workers):
-            dispatch_time = time.time()
-            work_queue.put((n, next_offset, batch_size))
-            dispatched_batches[next_offset] = (batch_size, dispatch_time)
-            batches_in_flight += 1
-            next_offset += batch_size
-        
-        # Main loop: collect results and dispatch new work
-        while batches_in_flight > 0:
-            try:
-                batch_start, batch_end, result = result_queue.get(timeout=0.1)
-                batches_in_flight -= 1
-                
-                current_time = time.time()
-                elapsed = current_time - start_time
-                recent_batch_size = batch_end - batch_start
-                
-                # Calculate completion time for adaptive sizing
-                completion_time = 0.0
-                if batch_start in dispatched_batches:
-                    original_size, dispatch_time = dispatched_batches.pop(batch_start)
-                    completion_time = current_time - dispatch_time
-                    
-                    # Adaptive batch size adjustment
-                    if adaptive and result is None:  # Only adjust when no result found
-                        if completion_time < target_time / tk:
-                            # Too fast - grow batch size
-                            if recent_batch_size > batch_size:
-                                batch_size = int(recent_batch_size * tk)
-                        elif completion_time > target_time * tk:
-                            # Too slow - shrink batch size
-                            if recent_batch_size < batch_size:
-                                batch_size = max(1, int(recent_batch_size / tk))
-                
-                if result is not None:
-                    # Found a candidate
-                    is_better = best_candidate is None or result < best_candidate
-                    if is_better:
-                        best_candidate = result
-                else:
-                    # No result in this batch
-                    completed_no_result[batch_start] = batch_end
-                
-                # Compute contiguous lower bound
-                lower_bound = 2
-                for start in sorted(completed_no_result.keys()):
-                    if start <= lower_bound:
-                        lower_bound = max(lower_bound, completed_no_result[start])
-                    else:
-                        break
-                
-                # Check if gap is closed
-                if best_candidate is not None and lower_bound >= best_candidate:
-                    time_str = format_duration(elapsed)
-                    if verbose:
-                        print(f"F({n}) = {best_candidate} ({time_str})")
-                    return best_candidate
-                
-                # Dispatch more work ONLY if no candidate OR batch is before candidate
-                if best_candidate is None or next_offset < best_candidate:
-                    try:
-                        dispatch_time = time.time()
-                        work_queue.put((n, next_offset, batch_size), timeout=0.01)
-                        dispatched_batches[next_offset] = (batch_size, dispatch_time)
-                        batches_in_flight += 1
-                        next_offset += batch_size
-                    except:
-                        pass  # Queue full, will retry next iteration
-                
-                # Enhanced progress reporting with batch completion time
-                if verbose and elapsed >= initial_delay and (current_time - last_report_time) >= report_interval:
-                    elapsed_str = format_duration(elapsed)
-                    completion_str = format_duration(completion_time) if completion_time > 0 else "?"
-                    
-                    if best_candidate is not None:
-                        bounds_str = f"[{lower_bound}; {best_candidate}]"
-                    else:
-                        bounds_str = f"[{lower_bound}; ?]"
-                    
-                    # Show batch size in progress if adaptive mode
-                    if adaptive:
-                        print(f"F({n}) : {bounds_str} [{batch_start}+{recent_batch_size}] ({completion_str}) ({elapsed_str}) batch_size={batch_size}", 
-                              file=sys.stderr, flush=True)
-                    else:
-                        print(f"F({n}) : {bounds_str} [{batch_start}+{recent_batch_size}] ({completion_str}) ({elapsed_str})", 
-                              file=sys.stderr, flush=True)
-                    last_report_time = current_time
-                    
-            except:
-                continue  # Timeout or other error, keep waiting
-        
-        # Should not reach here
-        if best_candidate is not None:
+        if verbose:
             elapsed = time.time() - start_time
-            time_str = format_duration(elapsed)
-            if verbose:
-                print(f"F({n}) = {best_candidate} ({time_str})")
-            return best_candidate
+            print(f"F({n}) = {result} ({format_duration(elapsed)})",
+                  file=sys.stderr, flush=True)
         
-        raise RuntimeError(f"No Fortunate number found for F({n})")
+        return result
         
     finally:
-        # Cleanup: send poison pills and join workers
+        # Cleanup workers
         for _ in workers:
             try:
                 work_queue.put(None, timeout=0.1)
@@ -253,24 +372,26 @@ def fortunate_streaming(n: int, batch_size: int = 1, verbose: bool = True, adapt
             p.join(timeout=1.0)
 
 
+# =============================================================================
+# CLI
+# =============================================================================
 
-def main():
-    """Command-line interface"""
+def main() -> None:
+    """Command-line interface."""
     if len(sys.argv) < 2:
         print("Usage: python fortunate_v2.py <n> [batch_size] [--no-adaptive]")
-        print("Example: python fortunate_v2.py 500          # Adaptive mode, initial batch_size=1")
-        print("         python fortunate_v2.py 500 50       # Adaptive mode, initial batch_size=50")
-        print("         python fortunate_v2.py 500 50 --no-adaptive  # Fixed batch_size=50")
+        print("Example: python fortunate_v2.py 500")
+        print("         python fortunate_v2.py 500 50 --no-adaptive")
         sys.exit(1)
     
     n = int(sys.argv[1])
-    batch_size = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2] != '--no-adaptive' else 1
+    batch_size = 1
+    if len(sys.argv) > 2 and sys.argv[2] != '--no-adaptive':
+        batch_size = int(sys.argv[2])
     adaptive = '--no-adaptive' not in sys.argv
     
     result = fortunate_streaming(n, batch_size=batch_size, adaptive=adaptive)
-    print(f"\n{'='*50}")
-    print(f"Result: F({n}) = {result}")
-    print(f"{'='*50}")
+    print(f"\nResult: F({n}) = {result}")
 
 
 if __name__ == "__main__":
