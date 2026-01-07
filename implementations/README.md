@@ -45,7 +45,7 @@ Standard test cases (all implementations):
 | 2000 | 51137 | **12m 5s** | -       | -      | Not implemented |
 | 2500 | 25643 | **2m 52s** | -       | 27.4m  | Not implemented |
 | 3000 | 27583 | **45.2s**  | -       | 49.0m  | Not implemented |
-| 4601 | 56611 | -          | -       | 4.96h  | Not implemented |
+| 4601 | 56611 | **36m 46s** | -      | 4.96h  | Not implemented |
 | 4602 | 62207 | -          | -       | 5h 52m | Not implemented |
 
 **Note**: All results on clean system (load ~1-2). See [main README](../README.md#performance-comparison-clean-system) for detailed methodology.
