@@ -32,40 +32,46 @@ We compare four implementations across multiple dimensions:
 
 ## Implementations
 
-| Implementation                          | Status        | Language    | Strategy                        | Performance (F(500))                                                      |
-| --------------------------------------- | ------------- | ----------- | ------------------------------- | ------------------------------------------------------------------------- |
-| [Rust](implementations/rust/)           | ✅ Production | Rust 1.92.0 | Orchestration + PARI/GP workers | 11.31s (baseline)                                                         |
-| [PARI/GP](implementations/pari-gp/)     | 🚧 Prototype  | PARI/GP     | Native parallelism              | TBD ([Issue #11](https://github.com/mitselek/fortunate-primes/issues/11)) |
-| [Python](implementations/python-gmpy2/) | 🚧 Prototype  | Python 3.9+ | gmpy2 (GMP bindings)            | TBD                                                                       |
-| [Node.js](implementations/node-ts/)     | 🚧 Prototype  | TypeScript  | Native BigInt or WASM+GMP       | TBD                                                                       |
+| Implementation                          | Status        | Language     | Strategy                        | Performance (F(500)) |
+| --------------------------------------- | ------------- | ------------ | ------------------------------- | -------------------- |
+| [Python](implementations/python-gmpy2/) | ✅ Production | Python 3.12  | gmpy2 + multiprocessing         | **1.25s (fastest!)** |
+| [PARI/GP](implementations/pari-gp/)     | ✅ Production | PARI/GP 2.15 | Native thread parallelism       | 6.8s                 |
+| [Rust](implementations/rust/)           | ✅ Production | Rust 1.92.0  | Orchestration + PARI/GP workers | 11.3s                |
+| [Node.js](implementations/node-ts/)     | 🚧 Planned    | TypeScript   | Native BigInt or WASM+GMP       | Not implemented      |
 
 ### Quick Comparison
 
-**Rust (Current Baseline)**
+**🏆 Python + gmpy2 (Winner!)**
 
-- ✅ Highest performance (worker-count-aware adaptive batching)
+- ✅ **Fastest implementation**: 9-22x faster than Rust, 2-5x faster than PARI/GP
+- ✅ Most accessible language
+- ✅ Excellent clean-system scaling (8.5x CPU parallelism)
+- ✅ Rich ecosystem (pytest, type hints, OEIS validation)
+- ✅ Process isolation handles system load well
+- ⚠️ Performance degrades 2.5x under heavy load (18-26)
+- 📊 **Best for**: n ≤ 2500 (production-ready)
+
+**PARI/GP (Runner-up)**
+
+- ✅ Second fastest: 1.7x faster than Rust on F(500)
+- ✅ Architectural simplicity (~50 lines)
+- ✅ Single binary, no orchestration overhead
+- ✅ Good load resilience (maintains 8-9x parallelism)
+- ⚠️ GP scripting less familiar to developers
+- 📊 **Best for**: Standalone scripts, prototyping
+
+**Rust (Baseline)**
+
 - ✅ Strong type safety and memory safety
+- ✅ Best for very large n (F(4602) = 5h 52m)
+- ✅ Adaptive batching with early termination
+- ⚠️ Slowest for small-medium n (9-22x slower than Python)
 - ⚠️ Requires Rust toolchain + PARI/GP
 - ⚠️ More complex (200+ lines, subprocess orchestration)
+- 📊 **Best for**: Production systems, n > 3000
 
-**Pure PARI/GP** ([Issue #11](https://github.com/mitselek/fortunate-primes/issues/11))
+**Node.js + TypeScript (Not Implemented)**
 
-- ✅ Architectural simplicity (~30-50 lines)
-- ✅ Single binary, no orchestration overhead
-- ⚠️ GP scripting less familiar to developers
-- ⚠️ Progress reporting more primitive
-
-**Python + gmpy2**
-
-- ✅ Most accessible language
-- ✅ Performance should match PARI/GP (both use GMP)
-- ✅ Rich ecosystem (pytest, mypy, black)
-- ⚠️ Python runtime overhead vs compiled binary
-
-**Node.js + TypeScript**
-
-- ✅ Maximum developer accessibility (most popular language)
-- ✅ Strong TypeScript typing
 - ❌ Native BigInt 10-50x slower than GMP
 - ⚠️ WASM+GMP needed for competitive performance
 
@@ -109,28 +115,67 @@ cat benchmarks/results/*.log
 
 See [benchmarks/README.md](benchmarks/README.md) for details.
 
-## Current Performance (Rust Baseline)
+## Performance Comparison (Clean System)
 
-| n    | F(n)  | Time   | Workers | Hardware     |
-| ---- | ----- | ------ | ------- | ------------ |
-| 500  | 5167  | 11.31s | 15      | Ryzen 7 2700 |
-| 1000 | 8719  | 85.8s  | 15      | Ryzen 7 2700 |
-| 2500 | 25643 | 27.35m | 15      | Ryzen 7 2700 |
-| 3000 | 27583 | 48.97m | 15      | Ryzen 7 2700 |
-| 4601 | 56611 | 4.96h  | 15      | Ryzen 7 2700 |
+| n    | F(n)  | Python       | PARI/GP    | Rust       | Python Speedup vs Rust |
+| ---- | ----- | ------------ | ---------- | ---------- | ---------------------- |
+| 500  | 5167  | **1.25s**    | 6.8s       | 11.3s      | **9.0x**               |
+| 1000 | 8719  | **3.86s**    | 68.9s\*    | 85.8s      | **22.2x**              |
+| 2500 | 25643 | **2m 50s**   | Not tested | 27.4m      | **9.6x**               |
+| 2000 | 51137 | **26m 6s\*** | Not tested | Not tested | -                      |
+| 3000 | 27583 | Not tested   | Not tested | 49.0m      | -                      |
+| 4601 | 56611 | Not tested   | Not tested | 5.0h       | -                      |
+| 4602 | 62207 | Not tested   | Not tested | 5h 52m     | -                      |
+
+\* PARI/GP F(1000) under heavy load (30-36); would be faster on clean system  
+\*\* Python F(2000) under heavy load (25.94); would be faster on clean system
 
 **Hardware**: AMD Ryzen 7 2700 (8 physical cores, 16 logical CPUs with SMT)
 
 ## Research Status
 
+- ✅ **Python + gmpy2**: Production-ready, fastest implementation (Issue #13)
+- ✅ **PARI/GP**: Production-ready, native parallelism (Issue #11)
 - ✅ **Rust baseline**: Optimized with worker-count-aware adaptive batching
-- ✅ **Issue #11**: Design discussion for pure PARI/GP implementation
-- ✅ **Issue #12**: Restructure project for parallel comparison
-- 🚧 **Prototypes**: PARI/GP, Python, Node.js implementations pending
+- ✅ **Issue #12**: Project restructured for parallel comparison
+- 📊 **Benchmarking**: Comprehensive clean-system and load-testing complete
+- 🎯 **Winner**: Python + gmpy2 (9-22x faster than Rust for n ≤ 2500)
 
 ## Key Findings
 
-### Rust Architecture (Current)
+### Python + gmpy2 Wins! 🏆
+
+**Breakthrough**: Python is **9-22x faster** than Rust for small-medium n:
+
+- F(500): 1.25s (Python) vs 11.3s (Rust) = **9.0x speedup**
+- F(1000): 3.86s (Python) vs 85.8s (Rust) = **22.2x speedup**
+- F(2500): 2m 50s (Python) vs 27.4m (Rust) = **9.6x speedup**
+
+**Why Python Wins**:
+
+1. **GMP efficiency**: gmpy2 provides direct GMP bindings with minimal overhead
+2. **Process isolation**: Multiprocessing avoids GIL, handles system load better than threading
+3. **Clean-system scaling**: Achieves 8.3-8.7x CPU parallelism (16 workers)
+4. **Optimal batch size**: 50 (smaller than PARI/GP's 100-150) reduces idle time
+5. **No subprocess overhead**: Unlike Rust's PARI/GP orchestration, Python runs primality tests in-process
+
+**Load Sensitivity**: Python performance degrades 2.4-2.5x under heavy load (18-26), but remains fastest overall.
+
+**Sweet Spot**: Python excels for n ≤ 2500. Beyond n=2000, primality testing (Miller-Rabin on ~7800+ digit numbers) dominates and scaling becomes superlinear.
+
+### PARI/GP: Simplicity + Performance
+
+**Design**: Native PARI/GP with thread parallelism
+
+**Performance**: Second fastest (1.7x faster than Rust on F(500))
+
+**Advantages**:
+
+- Architectural simplicity (~50 lines vs Rust's 200+)
+- Load resilience (maintains 8-9x parallelism under heavy load)
+- Single binary, no orchestration overhead
+
+### Rust Architecture
 
 **Design**: Rust orchestration + 15 PARI/GP subprocesses
 

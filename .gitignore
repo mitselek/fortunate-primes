@@ -43,6 +43,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.venv/
+venv/
+implementations/python-gmpy2/.venv/
 implementations/python-gmpy2/venv/
 implementations/python-gmpy2/__pycache__/
 

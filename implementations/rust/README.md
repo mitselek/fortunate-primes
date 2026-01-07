@@ -40,16 +40,17 @@ cargo build --release
 
 ## Benchmarks
 
-| n    | F(n)  | Time   | Details                   |
-| ---- | ----- | ------ | ------------------------- |
-| 5    | 23    | <1ms   | Unit test                 |
-| 10   | 61    | <1ms   | Unit test                 |
-| 20   | 103   | <1ms   | Unit test                 |
-| 500  | 5167  | 11.31s | 15 workers                |
-| 1000 | 8719  | 85.8s  | 15 workers                |
-| 2500 | 25643 | 27.35m | Verified against OEIS     |
-| 3000 | 27583 | 48.97m | Verified against OEIS     |
-| 4601 | 56611 | 4.96h  | First beyond OEIS dataset |
+| n    | F(n)  | Time    | Details                   |
+| ---- | ----- | ------- | ------------------------- |
+| 5    | 23    | <1ms    | Unit test                 |
+| 10   | 61    | <1ms    | Unit test                 |
+| 20   | 103   | <1ms    | Unit test                 |
+| 500  | 5167  | 11.31s  | 15 workers                |
+| 1000 | 8719  | 85.8s   | 15 workers                |
+| 2500 | 25643 | 27.35m  | Verified against OEIS     |
+| 3000 | 27583 | 48.97m  | Verified against OEIS     |
+| 4601 | 56611 | 4.96h   | First beyond OEIS dataset |
+| 4602 | 62207 | 5h 40m  | Clean system, 15 workers  |
 
 **Hardware**: AMD Ryzen 7 2700 (8 cores, 16 logical CPUs)
 
