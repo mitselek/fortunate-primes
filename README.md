@@ -33,9 +33,79 @@ Progress is shown after 2 seconds of computation.
 
 ## Architecture
 
+### CPU-Based Parallel Design
+
 - **pari.rs**: PARI/GP subprocess interface
-- **search.rs**: Parallel batch coordinator (8 workers, 10K batch size)
-- **progress.rs**: Terminal progress reporting with overwrite
+- **search.rs**: Parallel batch coordinator with cooperative cancellation
+- **progress.rs**: Terminal progress reporting with interval notation
+
+**PARI/GP Command:**
+
+Each worker executes PARI/GP script for batch `[start, end]`:
+
+```gp
+pn=prod(i=1,n,prime(i));              # Compute primorial(n)
+for(m=start,end,                       # Search range
+  if(ispseudoprime(pn+m),              # Test primorial(n) + m
+    print(m); break))                  # Print and exit on first prime
+```
+
+**Primality Testing:**
+
+The `ispseudoprime()` function uses the Baillie-PSW test:
+
+- **Deterministic for n ≤ 15**: `primorial(15) = 614889782588491410 < 2⁶⁴`
+- **Probabilistic for n ≥ 16**: Numbers exceed 2⁶⁴, but no Baillie-PSW counterexamples are known
+- For n=4601: Testing numbers with ~1000 digits, far beyond deterministic range
+- **Reliability**: No false positives found despite extensive research; considered trustworthy for practical purposes
+
+**Key Design Insight:**
+
+The Rust process **never handles the massive primorial numbers** - they stay entirely within PARI/GP!
+
+- **Rust → PARI/GP**: Sends small integers (`n`, `start`, `end`) and script text
+- **PARI/GP internal**: Computes primorial(n) with 1000s of digits, performs all big integer arithmetic
+- **PARI/GP → Rust**: Returns only the small offset `m` (a u64)
+
+This explains the memory efficiency: Rust coordinator uses only 2 MB, while each PARI/GP worker needs ~13 MB to store the primorial and arithmetic workspace. No serialization overhead - PARI/GP acts as a specialized math coprocessor.
+
+**Threading Model:**
+
+- Main coordinator thread (minimal CPU usage)
+- `num_cpus - 1` worker threads (15 on 16-core system)
+- Each worker spawns PARI/GP subprocess for primality testing
+- Workers distributed across CPU cores at ~99% utilization
+
+**Memory Efficiency:**
+
+- Main process: ~2 MB RSS
+- Each PARI/GP worker: ~13 MB RSS
+- Total footprint: ~200 MB for 15 workers
+
+### GPU Considerations
+
+While GPU acceleration might seem attractive for parallelism, primality testing for Fortunate numbers faces significant challenges:
+
+**Current CPU Approach:**
+
+- 15 candidates tested in parallel
+- Mature big integer libraries (PARI/GP, GMP)
+- Efficient for numbers with 100s-1000s of digits
+
+**Hypothetical GPU Approach:**
+
+- Could test 1000s of candidates simultaneously
+- **Problem**: Limited big integer arithmetic support on GPU
+- Complex modular arithmetic doesn't map well to GPU architecture
+- Memory constraints for multi-precision integers per thread
+
+**Expected Reality:**
+
+- Theoretical: 10-100x speedup from massive parallelism
+- Practical: 2-5x speedup due to big integer overhead
+- GPU libraries (cuBigInt, cgbn) less mature than CPU counterparts
+
+**Conclusion:** CPU + PARI/GP remains optimal for this workload. GPUs excel at simple operations on massive datasets, but primality testing requires complex arithmetic on huge numbers where CPU libraries dominate.
 
 ## Testing
 
@@ -49,15 +119,15 @@ Using PARI/GP backend is significantly faster than pure Rust implementations, es
 
 Some sample results:
 
-| n    | F(n)  | Batch size | Time   |
-| ----:| -----:| ----------:| ------:|
-| 500  | 5167  | 800        | 5.70s  |
-| 600  | 16187 | 800        | 19.80s |
-| 700  | 12853 | 1600       | 30.00s |
-| 1079 | 8929  | 800        | 57.28s |
-| 1300 | 13457 | 1600       | 3.20m  |
-| 1800 | 16229 | 1600       | 8.30m  |
-| 2000 | 51137 | 200        | 27.23m |
-| 2500 | 25643 | 200        | 27.35m |
-| 3000 | 27583 | 200        | 48.97m |
-| 4601 | 56611 | 200        | 4.96h  |
+|    n |  F(n) | Batch size |   Time |
+| ---: | ----: | ---------: | -----: |
+|  500 |  5167 |        800 |  5.70s |
+|  600 | 16187 |        800 | 19.80s |
+|  700 | 12853 |       1600 | 30.00s |
+| 1079 |  8929 |        800 | 57.28s |
+| 1300 | 13457 |       1600 |  3.20m |
+| 1800 | 16229 |       1600 |  8.30m |
+| 2000 | 51137 |        200 | 27.23m |
+| 2500 | 25643 |        200 | 27.35m |
+| 3000 | 27583 |        200 | 48.97m |
+| 4601 | 56611 |        200 |  4.96h |
