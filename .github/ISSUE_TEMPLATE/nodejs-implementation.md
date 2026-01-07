@@ -9,6 +9,7 @@ Implement parallelized Fortunate number calculator using **Node.js + TypeScript*
 After successful PARI/GP implementation (Issue #11) showing **1.25-1.67x speedup** over Rust orchestration, Node.js is worth exploring for:
 
 ### Potential Advantages
+
 - ✅ **Maximum accessibility**: JavaScript most popular language, TypeScript adds safety
 - ✅ **Native BigInt**: Built-in arbitrary precision integers (ES2020+)
 - ✅ **Rich ecosystem**: npm packages for primality testing
@@ -17,20 +18,23 @@ After successful PARI/GP implementation (Issue #11) showing **1.25-1.67x speedup
 - ✅ **Worker threads**: `worker_threads` module for parallelism
 
 ### Key Question
+
 Can Node.js match Python accessibility while achieving **reasonable performance** (within 2-3x of PARI/GP)?
 
 ## Expected Architecture
 
 ### Core Components
+
 1. **Primorial computation**: BigInt factorial of primes (no native primorial function)
 2. **Primality testing**: External library (bigint-crypto-utils, primality, or custom Miller-Rabin)
 3. **Parallel workers**: `worker_threads.Worker` pool for batch distribution
 4. **Batch strategy**: Reuse optimal batch sizes from PARI/GP (100 for n~500, 150 for n~1000)
 
 ### Implementation Pattern
+
 ```typescript
-import { Worker } from 'worker_threads';
-import { isProbablyPrime } from 'bigint-crypto-utils';
+import { Worker } from "worker_threads";
+import { isProbablyPrime } from "bigint-crypto-utils";
 
 interface WorkerMessage {
   n: number;
@@ -41,9 +45,10 @@ interface WorkerMessage {
 // Worker file: worker.ts
 function testBatch(n: number, start: bigint, batchSize: number): bigint | null {
   const pn = computePrimorial(n);
-  
+
   for (let m = start; m < start + BigInt(batchSize); m++) {
-    if (isProbablyPrime(pn + m, 25)) {  // 25 Miller-Rabin rounds
+    if (isProbablyPrime(pn + m, 25)) {
+      // 25 Miller-Rabin rounds
       return m;
     }
   }
@@ -51,33 +56,36 @@ function testBatch(n: number, start: bigint, batchSize: number): bigint | null {
 }
 
 // Main coordinator
-async function fortunateBatch(n: number, batchSize: number = 100): Promise<bigint> {
+async function fortunateBatch(
+  n: number,
+  batchSize: number = 100
+): Promise<bigint> {
   const numWorkers = os.cpus().length;
   const workers: Worker[] = [];
-  
+
   // Create worker pool
   for (let i = 0; i < numWorkers; i++) {
-    workers.push(new Worker('./worker.js'));
+    workers.push(new Worker("./worker.js"));
   }
-  
+
   let round = 0;
   while (true) {
     round++;
     const promises = workers.map((worker, i) => {
       return new Promise((resolve) => {
-        worker.once('message', resolve);
+        worker.once("message", resolve);
         worker.postMessage({
           n,
           start: BigInt(round * numWorkers * batchSize + i * batchSize),
-          batchSize
+          batchSize,
         });
       });
     });
-    
+
     const results = await Promise.all(promises);
-    const found = results.find(r => r !== null);
+    const found = results.find((r) => r !== null);
     if (found) {
-      workers.forEach(w => w.terminate());
+      workers.forEach((w) => w.terminate());
       return found as bigint;
     }
   }
@@ -100,11 +108,11 @@ async function fortunateBatch(n: number, batchSize: number = 100): Promise<bigin
 
 **Target System**: AMD Ryzen 7 2700 (16 threads)
 
-| n    | F(n) | PARI/GP (baseline) | Node.js (target)     | Notes                       |
-| ---- | ---- | ------------------ | -------------------- | --------------------------- |
-| 500  | 5167 | 6.8s               | TBD (~15-30s?)       | BigInt primality may be slow |
-| 1000 | 8719 | 68.9s              | TBD (~150-250s?)     | Acceptable if < 3x PARI/GP  |
-| 4602 | TBD  | TBD                | Not recommended      | Too slow for large n        |
+| n    | F(n) | PARI/GP (baseline) | Node.js (target) | Notes                        |
+| ---- | ---- | ------------------ | ---------------- | ---------------------------- |
+| 500  | 5167 | 6.8s               | TBD (~15-30s?)   | BigInt primality may be slow |
+| 1000 | 8719 | 68.9s              | TBD (~150-250s?) | Acceptable if < 3x PARI/GP   |
+| 4602 | TBD  | TBD                | Not recommended  | Too slow for large n         |
 
 **Realistic expectations**: Node.js unlikely to match PARI/GP performance (no native GMP), but may offer best accessibility/maintainability trade-off.
 
@@ -128,30 +136,34 @@ npm install primality             # Alternative
 
 Compare primality testing libraries:
 
-| Library             | Stars | Algorithm         | Performance | Maintenance |
-| ------------------- | ----- | ----------------- | ----------- | ----------- |
-| bigint-crypto-utils | ~700  | Miller-Rabin      | TBD         | Active      |
-| primality           | ~50   | Multiple          | TBD         | Inactive?   |
-| Custom Miller-Rabin | N/A   | Miller-Rabin (25) | TBD         | Full control|
+| Library             | Stars | Algorithm         | Performance | Maintenance  |
+| ------------------- | ----- | ----------------- | ----------- | ------------ |
+| bigint-crypto-utils | ~700  | Miller-Rabin      | TBD         | Active       |
+| primality           | ~50   | Multiple          | TBD         | Inactive?    |
+| Custom Miller-Rabin | N/A   | Miller-Rabin (25) | TBD         | Full control |
 
 **Test**: Benchmark `isPrime(primorial(500) + 5167)` for each library.
 
 ## Open Questions
 
 1. **Primality testing performance**:
+
    - How much slower is JavaScript BigInt Miller-Rabin vs GMP?
    - Can we match Python+gmpy2 if Python is also slow?
 
 2. **Worker threads overhead**:
+
    - Does `worker_threads` have similar overhead to Python's `multiprocessing`?
    - Serialization cost for BigInt messages?
 
 3. **Primorial optimization**:
+
    - Cache primorial in main thread, serialize to workers?
    - Recompute per worker (PARI/GP approach)?
    - Shared memory for BigInt values?
 
 4. **Native addon consideration**:
+
    - Should we use N-API bindings to GMP for performance?
    - Defeats accessibility purpose if requiring C++ compilation
 
@@ -162,21 +174,25 @@ Compare primality testing libraries:
 ## Success Criteria
 
 ### Minimum Viable (Worth keeping)
+
 - ✅ F(500) < 30s (within 5x of PARI/GP)
 - ✅ F(1000) < 200s (within 3x of PARI/GP)
 - ✅ Clean TypeScript code (~150-200 lines)
 - ✅ Best-in-class documentation and developer experience
 
 ### Realistic Goal
+
 - 🎯 F(500) ~15-20s (2-3x PARI/GP)
 - 🎯 F(1000) ~150-180s (2-3x PARI/GP)
 - 🎯 "Accessible alternative" recommendation for education/learning
 
 ### Stretch (Unlikely without native bindings)
+
 - 🚀 F(500) < 10s (approaching PARI/GP)
 - 🚀 Viable for production use
 
 ### Documentation
+
 - 📝 Library comparison and recommendations
 - 📝 Performance analysis vs PARI/GP, Python, Rust
 - 📝 When to use Node.js (education) vs PARI/GP (production)
