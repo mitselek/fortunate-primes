@@ -1,5 +1,6 @@
 # Rust build artifacts
 /target/
+implementations/rust/target/
 Cargo.lock
 **/*.rs.bk
 *.pdb
@@ -42,7 +43,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+implementations/python-gmpy2/venv/
+implementations/python-gmpy2/__pycache__/
+
+# Node.js
+node_modules/
+implementations/node-ts/node_modules/
+implementations/node-ts/dist/
+package-lock.json
 
 # Local testing
 test_output/
 results/
+benchmarks/results/*.log

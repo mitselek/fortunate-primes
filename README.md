@@ -1,176 +1,193 @@
-# Fortunate Primes
+# Fortunate Primes: Architectural Comparison
 
-Calculate Fortunate numbers F(n) using PARI/GP.
+Research project comparing four implementations for computing Fortunate numbers F(n).
 
-## Definition
+## What are Fortunate Numbers?
 
-F(n) = smallest m > 1 such that primorial(n) + m is prime, where primorial(n) = p₁ × p₂ × ... × pₙ
+**Definition**: F(n) = smallest m > 1 such that primorial(n) + m is prime
 
-## Requirements
+Where primorial(n) = product of first n primes (p₁ × p₂ × ... × pₙ)
 
-- PARI/GP: `sudo apt install pari-gp`
+**Examples**:
+- F(5) = 23 (primorial(5) = 2×3×5×7×11 = 2310, and 2310+23 = 2333 is the first prime)
+- F(10) = 61
+- F(500) = 5167
+- F(4601) = 56611 (beyond OEIS dataset)
 
-## Usage
+**Fortune's Conjecture**: All F(n) are prime (verified computationally, unproven)
+
+**Reference**: [OEIS A005235](https://oeis.org/A005235)
+
+## Research Question
+
+**Which architecture is optimal for computing Fortunate numbers?**
+
+We compare four implementations across multiple dimensions:
+- **Performance**: Runtime for F(500) and F(1000)
+- **Complexity**: Lines of code, maintainability
+- **Accessibility**: Developer familiarity, setup ease
+- **Trade-offs**: Memory, dependencies, distribution
+
+## Implementations
+
+| Implementation | Status | Language | Strategy | Performance (F(500)) |
+|----------------|--------|----------|----------|----------------------|
+| [Rust](implementations/rust/) | ✅ Production | Rust 1.92.0 | Orchestration + PARI/GP workers | 11.31s (baseline) |
+| [PARI/GP](implementations/pari-gp/) | 🚧 Prototype | PARI/GP | Native parallelism | TBD ([Issue #11](https://github.com/mitselek/fortunate-primes/issues/11)) |
+| [Python](implementations/python-gmpy2/) | 🚧 Prototype | Python 3.9+ | gmpy2 (GMP bindings) | TBD |
+| [Node.js](implementations/node-ts/) | 🚧 Prototype | TypeScript | Native BigInt or WASM+GMP | TBD |
+
+### Quick Comparison
+
+**Rust (Current Baseline)**
+- ✅ Highest performance (worker-count-aware adaptive batching)
+- ✅ Strong type safety and memory safety
+- ⚠️ Requires Rust toolchain + PARI/GP
+- ⚠️ More complex (200+ lines, subprocess orchestration)
+
+**Pure PARI/GP** ([Issue #11](https://github.com/mitselek/fortunate-primes/issues/11))
+- ✅ Architectural simplicity (~30-50 lines)
+- ✅ Single binary, no orchestration overhead
+- ⚠️ GP scripting less familiar to developers
+- ⚠️ Progress reporting more primitive
+
+**Python + gmpy2**
+- ✅ Most accessible language
+- ✅ Performance should match PARI/GP (both use GMP)
+- ✅ Rich ecosystem (pytest, mypy, black)
+- ⚠️ Python runtime overhead vs compiled binary
+
+**Node.js + TypeScript**
+- ✅ Maximum developer accessibility (most popular language)
+- ✅ Strong TypeScript typing
+- ❌ Native BigInt 10-50x slower than GMP
+- ⚠️ WASM+GMP needed for competitive performance
+
+## Getting Started
+
+Each implementation has its own directory with setup instructions:
 
 ```bash
+# Rust (current baseline)
+cd implementations/rust
 cargo build --release
-./target/release/fortunate-primes <n>
+./target/release/fortunate-primes 500
+
+# PARI/GP (when implemented)
+cd implementations/pari-gp
+gp -q fortunate.gp
+
+# Python + gmpy2 (when implemented)
+cd implementations/python-gmpy2
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+python fortunate.py 500
+
+# Node.js + TypeScript (when implemented)
+cd implementations/node-ts
+npm install && npm run build
+npm start -- 500
 ```
 
-## Examples
+## Benchmarking
 
-```text
-$ ./target/release/fortunate-primes 10
-F(10) = 61
-time: 16ms
-
-$ ./target/release/fortunate-primes 500
-F(500) = 5167
-time: 23.36s
-```
-
-Progress is shown after 2 seconds of computation.
-
-## Architecture
-
-### CPU-Based Parallel Design
-
-- **pari.rs**: PARI/GP subprocess interface
-- **search.rs**: Parallel batch coordinator with cooperative cancellation
-- **progress.rs**: Terminal progress reporting with interval notation
-
-**PARI/GP Command:**
-
-Each worker executes PARI/GP script for batch `[start, end]`:
-
-```gp
-pn=prod(i=1,n,prime(i));              # Compute primorial(n)
-for(m=start,end,                       # Search range
-  if(ispseudoprime(pn+m),              # Test primorial(n) + m
-    print(m); break))                  # Print and exit on first prime
-```
-
-**Primality Testing:**
-
-The `ispseudoprime()` function uses the Baillie-PSW test:
-
-- **Deterministic for n ≤ 15**: `primorial(15) = 614889782588491410 < 2⁶⁴`
-- **Probabilistic for n ≥ 16**: Numbers exceed 2⁶⁴, but no Baillie-PSW counterexamples are known
-- For n=4601: Testing numbers with ~1000 digits, far beyond deterministic range
-- **Reliability**: No false positives found despite extensive research; considered trustworthy for practical purposes
-
-**Key Design Insight:**
-
-The Rust process **never handles the massive primorial numbers** - they stay entirely within PARI/GP!
-
-- **Rust → PARI/GP**: Sends small integers (`n`, `start`, `end`) and script text
-- **PARI/GP internal**: Computes primorial(n) with 1000s of digits, performs all big integer arithmetic
-- **PARI/GP → Rust**: Returns only the small offset `m` (a u64)
-
-This explains the memory efficiency: Rust coordinator uses only 2 MB, while each PARI/GP worker needs ~13 MB to store the primorial and arithmetic workspace. No serialization overhead - PARI/GP acts as a specialized math coprocessor.
-
-**Threading Model:**
-
-- Main coordinator thread (minimal CPU usage)
-- `num_cpus - 1` worker threads (15 on 16-core system)
-- Each worker spawns PARI/GP subprocess for primality testing
-- Workers distributed across CPU cores at ~99% utilization
-
-**Memory Efficiency:**
-
-- Main process: ~2 MB RSS
-- Each PARI/GP worker: ~13 MB RSS
-- Total footprint: ~200 MB for 15 workers
-
-### GPU Considerations
-
-While GPU acceleration might seem attractive for parallelism, primality testing for Fortunate numbers faces significant challenges:
-
-**Current CPU Approach:**
-
-- 15 candidates tested in parallel
-- Mature big integer libraries (PARI/GP, GMP)
-- Efficient for numbers with 100s-1000s of digits
-
-**Hypothetical GPU Approach:**
-
-- Could test 1000s of candidates simultaneously
-- **Problem**: Limited big integer arithmetic support on GPU
-- Complex modular arithmetic doesn't map well to GPU architecture
-- Memory constraints for multi-precision integers per thread
-
-**Expected Reality:**
-
-- Theoretical: 10-100x speedup from massive parallelism
-- Practical: 2-5x speedup due to big integer overhead
-- GPU libraries (cuBigInt, cgbn) less mature than CPU counterparts
-
-**Conclusion:** CPU + PARI/GP remains optimal for this workload. GPUs excel at simple operations on massive datasets, but primality testing requires complex arithmetic on huge numbers where CPU libraries dominate.
-
-### Design Evolution: Batch vs Interleaved Strategy
-
-The current batch-based approach (dynamic work queue) replaced an earlier interleaved/strided strategy (static worker assignments). Performance comparison reveals an interesting crossover:
-
-**Interleaved Strategy (archived):**
-
-With N workers (e.g., N=15), each worker k tests candidates at stride N:
-
-- Worker 0: tests m=1, 16, 31, 46... (start at 1, stride 15)
-- Worker 1: tests m=2, 17, 32, 47... (start at 2, stride 15)
-- Worker k: tests m=(k+1), (k+1)+N, (k+1)+2N... (start at k+1, stride N)
-- Static assignment, no coordination overhead
-
-**Batch Strategy (current):**
-
-- Workers pull consecutive-candidate batches from dynamic queue
-- Adaptive batch sizing (starts 100, doubles if <30s completion)
-- Cooperative cancellation when candidate found
-- Contiguous lower bound tracking for progress
-
-**Performance Crossover:**
-
-| n    | F(n)  | Interleaved | Batch-based | Winner      |
-| ---- | ----- | ----------- | ----------- | ----------- |
-| 600  | 16187 | 16.7s       | 19.80s      | Interleaved |
-| 2000 | 51137 | 1775s       | ~1634s      | Batch-based |
-
-**Why interleaved wins at n=500-600:**
-
-- F(n) found quickly (~16K tests), runtime dominated by parallel coverage
-- No coordination overhead - workers stride independently
-- Process spawn cost (10-15ms) negligible compared to 16-20s runtime
-
-**Why batch-based wins at n≥2000:**
-
-- Cache locality: testing consecutive numbers vs jumping by stride-16
-- Early termination: stops dispatching + cooperative worker exit when candidate found
-- Dynamic load balancing: adapts to variable primality test costs (larger numbers = slower)
-- Lower bound tracking: enables progress monitoring and gap closure detection
-- Long runtime (27+ minutes) amortizes coordination overhead
-
-**Crossover point:** Around n=1000-1500, where runtime becomes long enough that the batch optimizations (early termination, cache locality, adaptive sizing) outweigh the interleaved approach's zero-coordination advantage.
-
-## Testing
+Cross-implementation comparison infrastructure:
 
 ```bash
-cargo test
+# Run all implementations with standard test cases
+./benchmarks/compare-all.sh
+
+# View results
+cat benchmarks/results/*.log
 ```
 
-## Performance
+See [benchmarks/README.md](benchmarks/README.md) for details.
 
-Using PARI/GP backend is significantly faster than pure Rust implementations, especially for larger `n`.
+## Current Performance (Rust Baseline)
 
-Some sample results:
+| n    | F(n)  | Time    | Workers | Hardware |
+|------|-------|---------|---------|----------|
+| 500  | 5167  | 11.31s  | 15      | Ryzen 7 2700 |
+| 1000 | 8719  | 85.8s   | 15      | Ryzen 7 2700 |
+| 2500 | 25643 | 27.35m  | 15      | Ryzen 7 2700 |
+| 3000 | 27583 | 48.97m  | 15      | Ryzen 7 2700 |
+| 4601 | 56611 | 4.96h   | 15      | Ryzen 7 2700 |
 
-|    n |  F(n) | Batch size |   Time |
-| ---: | ----: | ---------: | -----: |
-|  500 |  5167 |        800 |  5.70s |
-|  600 | 16187 |        800 | 19.80s |
-|  700 | 12853 |       1600 | 30.00s |
-| 1079 |  8929 |        800 | 57.28s |
-| 1300 | 13457 |       1600 |  3.20m |
-| 1800 | 16229 |       1600 |  8.30m |
-| 2000 | 51137 |        200 | 27.23m |
-| 2500 | 25643 |        200 | 27.35m |
-| 3000 | 27583 |        200 | 48.97m |
-| 4601 | 56611 |        200 |  4.96h |
+**Hardware**: AMD Ryzen 7 2700 (8 physical cores, 16 logical CPUs with SMT)
+
+## Research Status
+
+- ✅ **Rust baseline**: Optimized with worker-count-aware adaptive batching
+- ✅ **Issue #11**: Design discussion for pure PARI/GP implementation
+- ✅ **Issue #12**: Restructure project for parallel comparison
+- 🚧 **Prototypes**: PARI/GP, Python, Node.js implementations pending
+
+## Key Findings
+
+### Rust Architecture (Current)
+
+**Design**: Rust orchestration + 15 PARI/GP subprocesses
+
+**Key Insight**: Primorials never leave PARI/GP memory
+- Rust sends: Small integers (n, start, end) + script text
+- PARI/GP computes: Primorial with 1000s of digits internally
+- PARI/GP returns: Small offset m (u64)
+- Result: Zero serialization overhead
+
+**Memory Efficiency**:
+- Rust coordinator: ~2 MB
+- Each PARI/GP worker: ~13 MB
+- Total: ~197 MB for 15 workers
+
+**Optimizations**:
+1. Worker-count-aware adaptive batching (60s/num_workers threshold)
+2. Early termination with cooperative cancellation
+3. Contiguous lower bound tracking
+4. Progress reporting with interval notation
+
+### Design Trade-offs: Batch vs Interleaved
+
+Performance crossover around n=1000-1500:
+
+- **Interleaved wins** (n < 1000): Zero coordination, static assignment
+- **Batch wins** (n ≥ 1000): Cache locality, early termination, adaptive sizing
+
+See [implementations/rust/README.md](implementations/rust/README.md) for full analysis.
+
+## Contributing
+
+We welcome implementations in other languages and architecture experiments!
+
+1. Create directory under `implementations/`
+2. Add README with setup, usage, benchmarks
+3. Implement standard test cases (n=5, 10, 20, 500, 1000)
+4. Run benchmarks and document findings
+5. Update comparison tables
+
+See [archived/CONTRIBUTING.md](archived/CONTRIBUTING.md) for development workflow.
+
+## Documentation
+
+- [Implementations Overview](implementations/README.md) - Detailed comparison matrix
+- [Benchmarking Guide](benchmarks/README.md) - How to run performance tests
+- [Rust Implementation](implementations/rust/README.md) - Current baseline details
+- [PARI/GP Design](implementations/pari-gp/README.md) - Architectural simplicity approach
+- [Python Implementation](implementations/python-gmpy2/README.md) - Accessibility focus
+- [Node.js Implementation](implementations/node-ts/README.md) - Maximum reach
+
+## References
+
+- **OEIS A005235**: <https://oeis.org/A005235>
+- **Fortune's Conjecture**: R. K. Guy, "Unsolved Problems in Number Theory"
+- **PARI/GP**: <https://pari.math.u-bordeaux.fr/>
+- **Baillie-PSW Test**: Used by `ispseudoprime()`, no known counterexamples
+- **GMP**: <https://gmplib.org/> (underlying big integer library)
+
+## License
+
+This is a research project for architectural comparison and education.
+
+## Related Issues
+
+- [#11: Pure PARI/GP implementation](https://github.com/mitselek/fortunate-primes/issues/11)
+- [#12: Restructure for parallel comparison](https://github.com/mitselek/fortunate-primes/issues/12)

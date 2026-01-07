@@ -43,7 +43,7 @@ fn compute_contiguous_lower_bound(completed_no_result: &BTreeMap<u64, u64>) -> u
 pub fn find_fortunate(n: usize) -> Result<u64, String> {
     let num_workers = num_cpus::get().saturating_sub(1).max(1);
     let mut reporter = ProgressReporter::new(n, 2.0, 1.0);
-    
+
     // Calculate adaptive threshold: 60 seconds divided by number of workers
     let adaptive_threshold_secs = 60.0 / num_workers as f64;
 
