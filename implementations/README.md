@@ -36,15 +36,15 @@ Each implementation is evaluated on:
 
 Standard test cases (all implementations):
 
-| n    | F(n) | Rust   | PARI/GP      | Python | Node.js |
-| ---- | ---- | ------ | ------------ | ------ | ------- |
-| 5    | 23   | <1ms   | 0.005s       | TBD    | TBD     |
-| 10   | 61   | <1ms   | 0.005s       | TBD    | TBD     |
-| 20   | 103  | <1ms   | TBD          | TBD    | TBD     |
-| 500  | 5167 | 11.31s | **6.76s** ⚡ | TBD    | TBD     |
-| 1000 | 8719 | 85.8s  | TBD          | TBD    | TBD     |
+| n    | F(n) | Rust   | PARI/GP       | Python | Node.js |
+| ---- | ---- | ------ | ------------- | ------ | ------- |
+| 5    | 23   | <1ms   | 0.005s        | TBD    | TBD     |
+| 10   | 61   | <1ms   | 0.005s        | TBD    | TBD     |
+| 20   | 103  | <1ms   | TBD           | TBD    | TBD     |
+| 500  | 5167 | 11.31s | **6.8s** ⚡   | TBD    | TBD     |
+| 1000 | 8719 | 85.8s  | **68.9s** ⚡  | TBD    | TBD     |
 
-**Note**: PARI/GP benchmarked under heavy system load (concurrent Rust F(4602)). Clean system estimated 1.8-2x speedup vs measured 1.67x.
+**Note**: PARI/GP benchmarked under heavy system load (concurrent Rust F(4602), load 17-36). Clean system estimated 1.5-2x speedup.
 
 See individual implementation READMEs for detailed setup and benchmark instructions.
 

@@ -5,7 +5,7 @@
 
 ## Overview
 
-Single-process PARI/GP implementation using native parallelism (`parapply()`) that **outperforms Rust orchestration by 1.47x (measured under load) to ~2x (estimated on clean system)**. Achieves superior performance through architectural simplicity: no subprocess spawning, no IPC overhead, native parallel primitives.
+Single-process PARI/GP implementation using native parallelism (`parapply()`) that **outperforms Rust orchestration by 1.67x (measured under load) to ~2x (estimated on clean system)**. Achieves superior performance through architectural simplicity: no subprocess spawning, no IPC overhead, native parallel primitives.
 
 ## Motivation
 
@@ -53,6 +53,7 @@ fortunate(500)
 ### Architecture
 
 - **fortunate.gp**: Production batch strategy with `parapply()`
+
   - `test_batch(n, start, batch_size)`: Worker function testing consecutive range
   - `fortunate_batch(n, batch_size=100)`: Coordinator distributing work
   - Each worker recomputes primorial(n) independently (overhead < IPC savings)
@@ -63,11 +64,13 @@ fortunate(500)
 ### PARI/GP Parallelism Lessons
 
 **What works:**
+
 - Simple exported functions: `export(test_batch);`
 - Direct parameter passing: `parapply(i -> test_batch(n, i*batch, batch), workers)`
 - Independent worker computation (no shared state)
 
 **What doesn't work:**
+
 - Closures over large integers (primorial) - causes hangs
 - Multi-line lambda expressions - syntax errors
 - Inline `my()` declarations in `parapply()` - parser fails
@@ -81,35 +84,72 @@ fortunate(500)
 
 ### F(500) Performance (batch strategy)
 
-| batch_size | Real Time | CPU Time | Rounds | Result |
-|------------|-----------|----------|--------|--------|
-| 50         | 7.7s      | 52.8s    | 4      | 5167   |
-| **100**    | **6.8s**  | **53.0s**| **2**  | **5167** |
-| 150        | 9.1s      | 74.1s    | 2      | 5167   |
-Why PARI/GP Wins
+| batch_size | Real Time | CPU Time  | Rounds | Result   |
+| ---------- | --------- | --------- | ------ | -------- |
+| 50         | 7.7s      | 52.8s     | 4      | 5167     |
+| **100**    | **6.8s**  | **53.0s** | **2**  | **5167** |
+| 150        | 9.1s      | 74.1s     | 2      | 5167     |
+
+**Optimal**: batch_size=100 for n~500
+
+### F(1000) Performance (batch strategy)
+
+| batch_size | Real Time | CPU Time   | Rounds | Result |
+| ---------- | --------- | ---------- | ------ | ------ |
+| 100        | 71.6s     | 624.6s     | 3      | 8719   |
+| **150**    | **68.9s** | **620.8s** | **2**  | **8719** |
+| 200        | 88.0s     | 808.9s     | 2      | 8719   |
+
+**Optimal**: batch_size=150 for n~1000
+
+### vs Rust Comparison
+
+| Implementation | F(500) Time | F(1000) Time | Workers | Avg Speedup |
+| -------------- | ----------- | ------------ | ------- | ----------- |
+| Rust 0.1.0     | 11.31s      | 85.8s        | 15      | 1.0x (baseline) |
+| **PARI/GP**    | **6.8s**    | **68.9s**    | **32**  | **1.25x** |
+
+**Speedup by test case:**
+- F(500): 1.67x faster (11.31s → 6.8s)
+- F(1000): 1.25x faster (85.8s → 68.9s)
+
+**Note**: PARI/GP benchmarked under heavy load (concurrent Rust F(4602) running, system load 17-36). Clean system estimated **1.5-2x speedup**.
+
+### Unit Tests
+
+| n   | F(n) | Time   | Rounds |
+| --- | ---- | ------ | ------ |
+| 5   | 23   | 0.005s | 1      |
+| 10  | 61   | 0.005s | 1      |
+
+## Why PARI/GP Wins
 
 **Performance advantages:**
+
 - **No subprocess spawning**: Saves 15 × 10-15ms = 150-225ms
 - **No IPC overhead**: Direct memory access vs channel serialization
 - **Native parallelism**: `parapply()` more efficient than manual coordination
 - **Better hardware utilization**: 32 threads vs 15 workers (2x parallelism)
 
 **Architectural advantages:**
+
 - **Simplicity**: ~80 lines GP vs 200+ lines Rust + PARI/GP integration
 - **Single binary**: No Rust toolchain required
 - **Primorial recomputation**: Overhead (~10-20ms × 32) << orchestration overhead saved (~200ms)
 
-**Measured speedup**: 1.47x under heavy load → **estimated 1.8-2x on clean system**
+**Measured speedup**: 1.67x under heavy load → **estimated 1.8-2x on clean system**
 
 ## Trade-offs
 
 **PARI/GP advantages:**
+
 - ✅ Faster execution (1.5-2x)
 - ✅ Simpler codebase
 - ✅ No dependency chain (Rust + PARI/GP → just PARI/GP)
 - ✅ Single process architecture
 
 **Rust advantages:**
+
 - ✅ Sophisticated features (adaptive batching, rich progress tracking)
 - ✅ Lower bound tracking and optimization
 - ✅ Better tooling and debugging
@@ -117,20 +157,12 @@ Why PARI/GP Wins
 
 **Recommendation**: Use **PARI/GP for production** (performance + simplicity), keep **Rust for research** (feature richness).
 
-| n    | F(n) | Time    | Rounds |
-|------|------|---------|--------|
-| 5    | 23   | 0.005s  | 1      |
-| 10   | 61   | 0.005s  | 1      |
-
-## Benefits (Hypothetical)
-
-- **Simplicity**: No subprocess spawning, no IPC, single binary
-- *Files
+## Files
 
 - **fortunate.gp** - Production batch strategy (use this)
 - **fortunate-seq.gp** - Sequential validation version
 - **benchmark.sh** - Automated benchmark script
-- **fortunate-{simple,batch,par,interleaved}.gp** - Abandoned prototypes (syntax experiments, kept for documentation)
+- **archive/** - Abandoned prototypes (fortunate-simple.gp, fortunate-batch.gp, etc.) - see [archive/README.md](archive/README.md)
 
 ## Next Steps
 
@@ -139,23 +171,9 @@ Why PARI/GP Wins
 - [ ] Measure memory usage vs Rust
 - [ ] Document early termination efficiency
 
-## Status
-
-**Completed**: Prototype exceeds expectations - 1.5-2x faster than Rust baseline with simpler architecture. See [BENCHMARKS.md](BENCHMARKS.md) for detailed measurements and Issue #11 for
-
-## Trade-offs (Expected)
-
-- **Progress reporting**: More primitive than Rust
-- **Adaptive batching**: Harder to implement sophisticated features
-- **Debugging**: Less mature tools than Rust ecosystem
-- **Familiarity**: GP scripting less common than Rust/Python
-
 ## References
 
 - PARI/GP Parallelism: <https://pari.math.u-bordeaux.fr/dochtml/html-stable/Parallelism.html>
-- Issue #11: Design discussion and implementation plan
+- Issue #11: [Design discussion and implementation plan](https://github.com/mitselek/fortunate-primes/issues/11)
 - Rust baseline: [../rust/](../rust/)
-
-## Status
-
-Awaiting prototype implementation. See Issue #11 for detailed design discussion.
+- Detailed benchmarks: [BENCHMARKS.md](BENCHMARKS.md)

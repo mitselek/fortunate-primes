@@ -13,17 +13,20 @@ This directory contains abandoned prototypes from Issue #11 development. These f
 
 ### Common PARI/GP Parallelism Issues
 
-1. **Closures over large integers**: 
+1. **Closures over large integers**:
+
    - Problem: Passing primorial via closure in `parapply()`
    - Result: Workers hang indefinitely (no error, just freeze)
    - Example: `fortunate-simple.gp`
 
 2. **Multi-line lambda expressions**:
+
    - Problem: PARI/GP parser doesn't support complex lambdas in `parapply()`
    - Result: Syntax errors
    - Example: `fortunate-interleaved.gp`
 
 3. **Inline variable declarations**:
+
    - Problem: `my()` declarations inside `parapply()` lambda
    - Result: Parser failure
    - Example: `fortunate-batch.gp`
@@ -36,6 +39,7 @@ This directory contains abandoned prototypes from Issue #11 development. These f
 ## What Works (See ../fortunate.gp)
 
 **Pattern that succeeds:**
+
 ```gp
 /* Define worker function separately */
 test_batch(n, start, batch_size) = {
@@ -50,13 +54,14 @@ export(test_batch);  /* REQUIRED for parallel execution */
 /* Coordinator with simple lambda */
 fortunate_batch(n, batch_size=100) = {
   /* ... setup ... */
-  results = parapply(i -> test_batch(n, i*batch_size, batch_size), 
+  results = parapply(i -> test_batch(n, i*batch_size, batch_size),
                      vector(num_workers));
   /* ... process results ... */
 }
 ```
 
 **Key principles:**
+
 1. ✅ Export worker functions explicitly
 2. ✅ Pass all data as parameters (no closures over large data)
 3. ✅ Keep lambdas simple (single function call)
