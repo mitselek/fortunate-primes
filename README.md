@@ -107,6 +107,49 @@ While GPU acceleration might seem attractive for parallelism, primality testing 
 
 **Conclusion:** CPU + PARI/GP remains optimal for this workload. GPUs excel at simple operations on massive datasets, but primality testing requires complex arithmetic on huge numbers where CPU libraries dominate.
 
+### Design Evolution: Batch vs Interleaved Strategy
+
+The current batch-based approach (dynamic work queue) replaced an earlier interleaved/strided strategy (static worker assignments). Performance comparison reveals an interesting crossover:
+
+**Interleaved Strategy (archived):**
+
+With N workers (e.g., N=15), each worker k tests candidates at stride N:
+
+- Worker 0: tests m=1, 16, 31, 46... (start at 1, stride 15)
+- Worker 1: tests m=2, 17, 32, 47... (start at 2, stride 15)
+- Worker k: tests m=(k+1), (k+1)+N, (k+1)+2N... (start at k+1, stride N)
+- Static assignment, no coordination overhead
+
+**Batch Strategy (current):**
+
+- Workers pull consecutive-candidate batches from dynamic queue
+- Adaptive batch sizing (starts 100, doubles if <30s completion)
+- Cooperative cancellation when candidate found
+- Contiguous lower bound tracking for progress
+
+**Performance Crossover:**
+
+| n    | F(n)  | Interleaved | Batch-based | Winner      |
+| ---- | ----- | ----------- | ----------- | ----------- |
+| 600  | 16187 | 16.7s       | 19.80s      | Interleaved |
+| 2000 | 51137 | 1775s       | ~1634s      | Batch-based |
+
+**Why interleaved wins at n=500-600:**
+
+- F(n) found quickly (~16K tests), runtime dominated by parallel coverage
+- No coordination overhead - workers stride independently
+- Process spawn cost (10-15ms) negligible compared to 16-20s runtime
+
+**Why batch-based wins at n≥2000:**
+
+- Cache locality: testing consecutive numbers vs jumping by stride-16
+- Early termination: stops dispatching + cooperative worker exit when candidate found
+- Dynamic load balancing: adapts to variable primality test costs (larger numbers = slower)
+- Lower bound tracking: enables progress monitoring and gap closure detection
+- Long runtime (27+ minutes) amortizes coordination overhead
+
+**Crossover point:** Around n=1000-1500, where runtime becomes long enough that the batch optimizations (early termination, cache locality, adaptive sizing) outweigh the interleaved approach's zero-coordination advantage.
+
 ## Testing
 
 ```bash
