@@ -52,16 +52,18 @@ def test_batch(n: int, start: int, batch_size: int) -> Tuple[int, int, Optional[
     return (start, end, None)
 
 
-def worker(work_queue: "Queue[Optional[Tuple[int, int, int]]]", 
-           result_queue: "Queue[Tuple[int, int, Optional[int]]]") -> None:
-    """Worker process: pull batches from queue, push results back."""
+def worker(worker_id: int,
+           work_queue: "Queue[Optional[Tuple[int, int, int]]]", 
+           result_queue: "Queue[Tuple[int, int, Optional[int], int]]") -> None:
+    """Worker process: pull batches from queue, push results back with worker_id."""
     while True:
         try:
             args = work_queue.get(timeout=0.1)
             if args is None:  # Poison pill
                 break
             n, start, size = args
-            result_queue.put(test_batch(n, start, size))
+            batch_start, batch_end, result = test_batch(n, start, size)
+            result_queue.put((batch_start, batch_end, result, worker_id))
         except:
             continue
 
@@ -121,7 +123,7 @@ def adjust_batch_size(
     tk: float
 ) -> int:
     """
-    Adjust batch size based on completion time.
+    Adjust batch size based on completion time, with minimum floor of 16.
     
     Algorithm (bidirectional):
     - Too fast (< target/tk) AND recent >= current: GROW
@@ -131,6 +133,9 @@ def adjust_batch_size(
     The recent_batch_size check filters out stale batches:
     - Stale small batches (from before growth) shouldn't trigger shrinking
     - Stale large batches (from before shrinking) shouldn't trigger growth
+    
+    Minimum batch size is enforced at 16 to avoid thrashing and maintain
+    reasonable throughput balance.
     """
     if completion_time < target_time / tk:
         # Too fast - grow if this batch reflects current state
@@ -139,7 +144,7 @@ def adjust_batch_size(
     elif completion_time > target_time * tk:
         # Too slow - shrink if this batch reflects current state  
         if recent_batch_size <= current_batch_size:
-            return max(1, int(recent_batch_size / tk))
+            return max(16, int(recent_batch_size / tk))  # Enforce floor of 16
     return current_batch_size
 
 
@@ -217,14 +222,15 @@ def log_batch(
     batch_size: int,
     completion_time: float,
     elapsed: float,
-    batch_size_changed: bool
+    batch_size_changed: bool,
+    worker_id: int
 ) -> None:
     """Log a single batch completion to stderr."""
     bounds = f"[{state.lower_bound}; {state.best_candidate or '?'}]"
     comp_str = format_duration(completion_time) if completion_time > 0 else "?"
     elapsed_str = format_duration(elapsed)
     
-    msg = f"F({n}) : {bounds} [{batch_start}+{batch_size}] ({comp_str}) ({elapsed_str})"
+    msg = f"F({n}) W{worker_id} : {bounds} [{batch_start}+{batch_size}] ({comp_str}) ({elapsed_str})"
     if batch_size_changed:
         msg += f" next_batch_size={state.next_batch_size}"
     
@@ -239,7 +245,7 @@ def run_search(
     n: int,
     state: SearchState,
     work_queue: "Queue[Optional[Tuple[int, int, int]]]",
-    result_queue: "Queue[Tuple[int, int, Optional[int]]]",
+    result_queue: "Queue[Tuple[int, int, Optional[int], int]]",
     start_time: float,
     adaptive: bool,
     target_time: float,
@@ -255,7 +261,7 @@ def run_search(
     while state.in_flight > 0:
         # Wait for next result
         try:
-            batch_start, batch_end, result = result_queue.get(timeout=0.1)
+            batch_start, batch_end, result, worker_id = result_queue.get(timeout=0.1)
         except:
             continue
         
@@ -276,7 +282,7 @@ def run_search(
         # Log EVERY batch
         if verbose:
             log_batch(n, state, batch_start, batch_size, 
-                      completion_time, elapsed, batch_size_changed)
+                      completion_time, elapsed, batch_size_changed, worker_id)
         
         # Check if done
         if state.is_done():
@@ -333,12 +339,12 @@ def fortunate_streaming(
     
     # Create queues
     work_queue: "Queue[Optional[Tuple[int, int, int]]]" = Queue(maxsize=num_workers * 2)
-    result_queue: "Queue[Tuple[int, int, Optional[int]]]" = Queue()
+    result_queue: "Queue[Tuple[int, int, Optional[int], int]]" = Queue()
     
     # Start workers
     workers: List[Process] = []
-    for _ in range(num_workers):
-        p = Process(target=worker, args=(work_queue, result_queue))
+    for worker_id in range(num_workers):
+        p = Process(target=worker, args=(worker_id, work_queue, result_queue))
         p.start()
         workers.append(p)
     
