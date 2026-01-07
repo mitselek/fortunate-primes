@@ -60,21 +60,21 @@ For an implementation to be considered viable:
 
 ## Performance Comparison (Current Results)
 
-| Implementation | F(500)       | F(1000)      | vs Rust (F(500)) | Memory Peak |
-| -------------- | ------------ | ------------ | ---------------- | ----------- |
-| Python + gmpy2 | **1.25s** ⚡ | **3.86s** ⚡ | **900%**         | ~400 MB     |
-| PARI/GP        | 6.8s         | 68.9s*       | 167%             | ~416 MB     |
-| Rust           | 11.31s       | 85.8s        | 100% (baseline)  | ~197 MB     |
-| Node.js + TS   | N/A          | N/A          | Not implemented  | N/A         |
+| Implementation | F(500)    | F(1000)   | vs Rust (F(500)) | Memory Peak |
+| -------------- | --------- | --------- | ---------------- | ----------- |
+| Python + gmpy2 | **1.25s** | **3.86s** | **900%**         | ~400 MB     |
+| PARI/GP        | 6.8s      | 68.9s\*   | 167%             | ~416 MB     |
+| Rust           | 11.31s    | 85.8s     | 100% (baseline)  | ~197 MB     |
+| Node.js + TS   | N/A       | N/A       | Not implemented  | N/A         |
 
-*PARI/GP F(1000) benchmarked under heavy load (30-36).
+\*PARI/GP F(1000) benchmarked under heavy load (30-36).
 
 **Extended Results:**
 
-| Implementation | F(2500)         | F(4602)    | Notes                    |
-| -------------- | --------------- | ---------- | ------------------------ |
-| Python + gmpy2 | **2m 50s** ⚡   | -          | 9.6x faster than Rust    |
-| Rust           | 27.4m           | 5h 52m     | First result beyond OEIS |
+| Implementation | F(2500)    | F(4602) | Notes                    |
+| -------------- | ---------- | ------- | ------------------------ |
+| Python + gmpy2 | **2m 50s** | -       | 9.6x faster than Rust    |
+| Rust           | 27.4m      | 5h 52m  | First result beyond OEIS |
 
 See [main README](../README.md#performance-comparison-clean-system) for detailed analysis and methodology.
 
