@@ -49,9 +49,13 @@ brew install python gmp
 # Activate environment
 source venv/bin/activate
 
-# Run calculator
-python fortunate.py 500     # Calculate F(500)
-python fortunate.py 1000    # Calculate F(1000)
+# Run calculator (v5 - queue-based load balancing with visualization)
+python fortunate_v5.py 500 510                    # Calculate F(500)..F(510)
+python fortunate_v5.py 500 510 --md output.md     # With markdown state table
+
+# Legacy versions
+python fortunate_v3.py 500 510    # v3 - queue-based, minimal output
+python fortunate_v2.py 500 510    # v2 - batch-based parallel search
 
 # Run tests
 pytest test_fortunate.py -v
@@ -96,7 +100,39 @@ See [BENCHMARKS.md](BENCHMARKS.md) for detailed analysis.
 
 ## Implementation Details
 
-**Architecture**: Parallel batch search using `multiprocessing.Pool`
+**Current best**: `fortunate_v5.py` - Queue-based load balancing with visualization
+
+### Architecture Evolution
+
+| Version | Architecture | Key Feature |
+|---------|-------------|-------------|
+| v2 | Batch parallel | Workers search offset ranges for single n |
+| v3 | Queue-based | Workers get assigned primorial indices dynamically |
+| v5 | Queue + viz | Clean separation: workers compute, main orchestrates, print reports |
+
+### v5 Architecture (Recommended)
+
+```text
+Main Loop (orchestrator)
+    │
+    ├──► Worker 1 queue ──► compute F(n) ──► result
+    ├──► Worker 2 queue ──► compute F(n) ──► result
+    ├──► ...
+    └──► Worker 16 queue ──► compute F(n) ──► result
+            │
+            └──► Main assigns next n from pending queue
+```
+
+**Clean separation of concerns**:
+- **Workers**: Simple - receive task, compute F(n), return result
+- **Main loop**: Single source of truth - assigns tasks, tracks state
+- **Print**: Reports events with accurate, race-free state
+
+**Output formats**:
+- Stdout: `7.12s W08 F(505)=4231 →510`
+- Markdown: Full state table showing all worker assignments per result
+
+### v2 Architecture (Legacy - for batch offset search)
 
 ```text
                     ┌─ Worker 1 (m=3-52) ──────┐
@@ -104,12 +140,6 @@ Main ─► primorial ─►├─ Worker 2 (m=53-102) ───├──► Fir
                     ├─ Worker 3 (m=103-152) ──┤
                     └─ Worker N (m=...) ──────┘
 ```
-
-**Key components**:
-
-- `compute_primorial()`: Calculate primorial(n) using gmpy2.mpz
-- `test_batch()`: Test range [start, end) for primality
-- `find_fortunate()`: Orchestrate parallel search with early termination
 
 ## Dependencies
 
