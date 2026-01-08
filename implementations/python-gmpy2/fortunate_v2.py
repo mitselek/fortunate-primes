@@ -321,7 +321,7 @@ def fortunate_streaming(
         F(n): The smallest prime of form primorial(n) + m where m > 1
     """
     start_time = time.time()
-    num_workers = cpu_count() - 1
+    num_workers = cpu_count() # - 1
     
     # Compute minimum offset (Firoozbakht: F(n) >= p_{n+1})
     min_offset = compute_min_offset(n)
