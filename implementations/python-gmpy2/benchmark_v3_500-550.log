@@ -1,0 +1,63 @@
+Computing F(500)..F(550) with 16 workers
+================================================================================
+BENCHMARK: fortunate_v3.py (500-550)
+================================================================================
+
+F( 509) =   3673 ( 511ms) [50 remaining,  2.67s elapsed]
+F( 514) =   3853 ( 1.69s) [49 remaining,  2.67s elapsed]
+F( 508) =   3919 ( 2.65s) [48 remaining,  2.79s elapsed]
+F( 516) =   3967 ( 2.36s) [47 remaining,  2.90s elapsed]
+F( 517) =   4019 ( 2.70s) [46 remaining,  4.42s elapsed]
+F( 505) =   4231 ( 4.48s) [45 remaining,  4.57s elapsed]
+F( 512) =   4463 ( 5.60s) [44 remaining,  5.69s elapsed]
+F( 501) =   4423 ( 5.85s) [43 remaining,  5.95s elapsed]
+F( 506) =   4583 ( 6.74s) [42 remaining,  6.83s elapsed]
+F( 510) =   4937 ( 9.30s) [41 remaining,  9.42s elapsed]
+F( 502) =   5081 (10.16s) [40 remaining, 10.26s elapsed]
+F( 503) =   5101 (10.35s) [39 remaining, 10.44s elapsed]
+F( 500) =   5167 (10.63s) [38 remaining, 10.72s elapsed]
+F( 521) =   4549 ( 6.53s) [37 remaining, 11.03s elapsed]
+F( 518) =   4877 ( 8.54s) [36 remaining, 11.22s elapsed]
+F( 530) =   3923 ( 1.14s) [35 remaining, 12.36s elapsed]
+F( 515) =   5521 (13.81s) [34 remaining, 13.94s elapsed]
+F( 504) =   5657 (14.29s) [33 remaining, 14.38s elapsed]
+F( 532) =   3853 ( 485ms) [32 remaining, 14.40s elapsed]
+F( 523) =   4909 ( 8.78s) [31 remaining, 14.66s elapsed]
+F( 507) =   5897 (16.31s) [30 remaining, 16.42s elapsed]
+F( 525) =   4691 ( 7.72s) [29 remaining, 17.05s elapsed]
+F( 527) =   4643 ( 6.79s) [28 remaining, 17.23s elapsed]
+F( 511) =   6053 (17.22s) [27 remaining, 17.32s elapsed]
+F( 533) =   4201 ( 3.34s) [26 remaining, 17.65s elapsed]
+F( 519) =   5711 (15.25s) [25 remaining, 18.15s elapsed]
+F( 520) =   5869 (16.38s) [24 remaining, 20.80s elapsed]
+F( 526) =   5237 (11.17s) [23 remaining, 21.42s elapsed]
+F( 536) =   4493 ( 5.28s) [22 remaining, 21.69s elapsed]
+F( 540) =   4591 ( 6.31s) [21 remaining, 23.97s elapsed]
+F( 542) =   4447 ( 4.85s) [20 remaining, 25.65s elapsed]
+F( 546) =   4001 ( 765ms) [19 remaining, 26.49s elapsed]
+F( 534) =   5867 (16.46s) [18 remaining, 30.79s elapsed]
+F( 535) =   5869 (17.37s) [17 remaining, 32.03s elapsed]
+F( 547) =   4603 ( 6.15s) [16 remaining, 32.65s elapsed]
+F( 544) =   5443 (13.48s) [15 remaining, 35.10s elapsed]
+F( 549) =   4339 ( 3.56s) [14 remaining, 35.59s elapsed]
+F( 545) =   5303 (12.13s) [13 remaining, 36.10s elapsed]
+F( 543) =   5693 (14.95s) [12 remaining, 36.30s elapsed]
+F( 539) =   6257 (19.73s) [11 remaining, 36.98s elapsed]
+F( 550) =   4463 ( 4.64s) [10 remaining, 37.21s elapsed]
+F( 513) =   9221 (37.67s) [ 9 remaining, 37.70s elapsed]
+F( 537) =   6529 (21.49s) [ 8 remaining, 38.54s elapsed]
+F( 524) =   9239 (35.73s) [ 7 remaining, 42.49s elapsed]
+F( 522) =  10193 (40.43s) [ 6 remaining, 46.06s elapsed]
+F( 541) =   8641 (29.62s) [ 5 remaining, 47.77s elapsed]
+F( 529) =  10853 (39.83s) [ 4 remaining, 50.86s elapsed]
+F( 548) =   7717 (20.17s) [ 3 remaining, 50.96s elapsed]
+F( 528) =  10903 (40.67s) [ 2 remaining, 51.32s elapsed]
+F( 538) =  16183 (54.22s) [ 1 remaining,  1.19m elapsed]
+F( 531) =  19699 ( 1.12m) [ 0 remaining,  1.33m elapsed]
+
+================================================================================
+Completed: 51/51 results
+Total wall time: 1.33m (79.55s)
+Sum of individual times: 1.33m (79.55s)
+Average per number: 1.56s
+================================================================================
