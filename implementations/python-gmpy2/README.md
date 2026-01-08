@@ -73,11 +73,12 @@ deactivate
 | 4601 | 56611 | **36m 46s** | -         | -          | ✅     |
 | 4602 | 62207 | **52m 52s** | **6.7x**  | -          | ✅     |
 | 4603 | 54083 | **29m 56s** | -         | -          | ✅     |
+| 4604 | 83773 | **1h 49m**  | -         | -          | ✅     |
 
 See [BENCHMARKS.md](BENCHMARKS.md) for detailed analysis.
 
 **System**: 16 cores, clean system (load ~1-2), Python 3.12.3, gmpy2 2.1.5  
-**Latest**: F(4601) computed with 15 workers, adaptive batch sizing (floor=16), Firoozbakht optimization
+**Latest**: F(4604) = 83773 computed with 16 workers (2026-01-08), adaptive batch sizing (floor=16), Firoozbakht optimization
 
 ## Benefits
 

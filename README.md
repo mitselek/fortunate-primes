@@ -127,6 +127,7 @@ See [benchmarks/README.md](benchmarks/README.md) for details.
 | 4601 | 56611 | **36m 46s**  | Not tested | 5.0h       | **8.2x**               |
 | 4602 | 62207 | **52m 52s**  | Not tested | 5h 52m     | **6.7x**               |
 | 4603 | 54083 | **29m 56s**  | Not tested | -          | -                      |
+| 4604 | 83773 | **1h 49m**   | Not tested | -          | -                      |
 
 \* PARI/GP F(1000) under heavy load (30-36); would be faster on clean system
 
