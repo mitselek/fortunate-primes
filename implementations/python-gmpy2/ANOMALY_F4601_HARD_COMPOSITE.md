@@ -15,7 +15,7 @@ During adaptive batch sizing analysis of `F(4601)`, discovered a pathological co
 
 During F(4601) search on 15 workers with adaptive batch sizing:
 
-```
+```text
 F(4601) W1 : [44221; ?] [44207+1] (22.59s) (22.61s)
 ```
 
@@ -25,7 +25,7 @@ Worker 1 tested a single offset [44207+1] and it took **22.59 seconds**, which i
 
 ### Step 1: Manual test with 25 rounds
 
-```
+```text
 Testing F(4601) at offset 44207...
 Primorial computed in 0.03s
 Testing if primorial(4601) + 44207 is prime...
@@ -37,7 +37,7 @@ Confirmed: The number is **composite** but requires 28+ seconds to disprove.
 
 ### Step 2: Minimal rounds comparison (24 vs 25)
 
-```
+```text
 === Testing with 24 rounds ===
 Result: COMPOSITE
 Time: 28.17s

@@ -70,8 +70,7 @@ deactivate
 | 2000 | 51137 | **12m 5s**  | -         | -          | ✅     |
 | 2500 | 25643 | **2m 52s**  | **9.6x**  | -          | ✅     |
 | 3000 | 27583 | **45.2s**   | **65x**   | -          | ✅     |
-| 4601 | 56611 | **36m 46s** | -         | -          | ✅     |
-
+| 4601 | 56611 | **36m 46s** | -         | -          | ✅     || 4602 | 62207 | **52m 52s** | **6.7x**  | -          | ✅     |
 See [BENCHMARKS.md](BENCHMARKS.md) for detailed analysis.
 
 **System**: 16 cores, clean system (load ~1-2), Python 3.12.3, gmpy2 2.1.5  

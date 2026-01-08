@@ -34,19 +34,19 @@ Each implementation is evaluated on:
 
 Standard test cases (all implementations):
 
-| n    | F(n)  | Python     | PARI/GP | Rust   | Node.js         |
-| ---- | ----- | ---------- | ------- | ------ | --------------- |
-| 5    | 23    | <1ms       | 0.005s  | <1ms   | TBD             |
-| 10   | 61    | <1ms       | 0.005s  | <1ms   | TBD             |
-| 20   | 103   | <1ms       | TBD     | <1ms   | TBD             |
-| 500  | 5167  | **1.25s**  | 6.8s    | 11.31s | Not implemented |
-| 1000 | 8719  | **3.86s**  | 68.9s   | 85.8s  | Not implemented |
-| 1500 | 14281 | **22.27s** | -       | -      | Not implemented |
-| 2000 | 51137 | **12m 5s** | -       | -      | Not implemented |
-| 2500 | 25643 | **2m 52s** | -       | 27.4m  | Not implemented |
-| 3000 | 27583 | **45.2s**  | -       | 49.0m  | Not implemented |
-| 4601 | 56611 | **36m 46s** | -      | 4.96h  | Not implemented |
-| 4602 | 62207 | -          | -       | 5h 52m | Not implemented |
+| n    | F(n)  | Python      | PARI/GP | Rust   | Node.js         |
+| ---- | ----- | ----------- | ------- | ------ | --------------- |
+| 5    | 23    | <1ms        | 0.005s  | <1ms   | TBD             |
+| 10   | 61    | <1ms        | 0.005s  | <1ms   | TBD             |
+| 20   | 103   | <1ms        | TBD     | <1ms   | TBD             |
+| 500  | 5167  | **1.25s**   | 6.8s    | 11.31s | Not implemented |
+| 1000 | 8719  | **3.86s**   | 68.9s   | 85.8s  | Not implemented |
+| 1500 | 14281 | **22.27s**  | -       | -      | Not implemented |
+| 2000 | 51137 | **12m 5s**  | -       | -      | Not implemented |
+| 2500 | 25643 | **2m 52s**  | -       | 27.4m  | Not implemented |
+| 3000 | 27583 | **45.2s**   | -       | 49.0m  | Not implemented |
+| 4601 | 56611 | **36m 46s** | -       | 4.96h  | Not implemented |
+| 4602 | 62207 | **52m 52s** | -      | 5h 52m | Not implemented |
 
 **Note**: All results on clean system (load ~1-2). See [main README](../README.md#performance-comparison-clean-system) for detailed methodology.
 
