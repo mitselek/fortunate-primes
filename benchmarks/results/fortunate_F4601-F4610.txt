@@ -1,0 +1,77 @@
+================================================================================
+Fortunate Numbers: F(4601) - F(4610) Computation Results
+================================================================================
+System: AMD Ryzen 7 2700 (16 logical cores)
+Python: 3.12.3, gmpy2 2.1.5
+Algorithm: Parallel gap-closing with adaptive batch sizing (floor=16)
+Optimization: Firoozbakht (start at p_{n+1})
+Date Range: 2026-01-08
+
+================================================================================
+RESULTS
+================================================================================
+
+n      | F(n)   | Time      | Workers | Primorial Digits | Status
+-------|--------|-----------|---------|------------------|--------
+4601   | 56611  | 36m 46s   | 15      | 1,961            | ✓ Complete
+4602   | 62207  | 52m 52s   | 15      | 1,961            | ✓ Complete
+4603   | 54083  | 29m 56s   | 15      | 1,964            | ✓ Complete
+4604   | 83773  | 1h 49m    | 16      | 1,964            | ✓ Complete
+4605   | 69143  | 1h 9m     | 16      | 1,964            | ✓ Complete
+4606   | 97813  | 2h 24m    | 16      | 1,964            | ✓ Complete
+
+================================================================================
+PERFORMANCE ANALYSIS
+================================================================================
+
+Scaling Pattern:
+- F(4603) = 54083 is anomalously fast (smaller answer value)
+- F(4604) = 83773 slower due to larger gap size
+- F(4605) = 69143 medium speed
+- F(4606) = 97813 slowest so far
+
+Speedup vs Rust Implementation:
+- F(4601) = 8.2x faster (Rust: 5.0h)
+- F(4602) = 6.7x faster (Rust: 5h 52m)
+- F(4603-4606): Beyond OEIS dataset (4600), no Rust baseline
+
+Worker Efficiency:
+- Increased from 15 to 16 workers starting with F(4604)
+- All workers consistently active throughout search
+- Batch floor of 16 prevents thrashing on hard composites
+
+================================================================================
+OEIS DATASET STATUS
+================================================================================
+
+Verified Against OEIS A005235 (n ≤ 4600):
+- F(1) through F(4600): All validated ✓
+- F(4601) and beyond: Beyond OEIS (unverified but computed)
+
+Ground Truth Reference:
+- OEIS A005235: https://oeis.org/A005235
+- OEIS A000040: https://oeis.org/A000040 (primes)
+
+================================================================================
+NOTES
+================================================================================
+
+Hard Composite Discovery (F(4601)):
+- Offset 44207: primorial(4601) + 44207 took ~28 seconds to disprove as prime
+- This composite required nearly full 25-round Miller-Rabin test
+- Caused adaptive batch sizing to shrink to floor value (16)
+- See: ANOMALY_F4601_HARD_COMPOSITE.md for detailed analysis
+
+Batch Sizing Optimization:
+- Minimum batch floor: 16 (prevents shrinking below practical minimum)
+- Prevents chasing noise from Miller-Rabin primality test variance
+- Typical variance range: 14ms to 28s per candidate
+
+Algorithm Features:
+- Channel-based parallel worker pool (Golang-inspired in Python)
+- Gap-closing: search from min_offset to answer value
+- Worker ID tracking: visible in console logs (W0-W15)
+- Shared primorial via multiprocessing.shared_memory
+- Adaptive batching based on recent performance
+
+================================================================================
