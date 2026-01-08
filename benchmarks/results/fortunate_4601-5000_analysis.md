@@ -1,131 +1,86 @@
-================================================================================
-Fortunate Numbers: F(4601) - F(5000) Computation Project
-================================================================================
+# Fortunate Numbers: F(4601) - F(5000) Computation Project
 
 ## Overview
 
-Systematic computation of Fortunate numbers beyond the OEIS A005235 dataset 
-(which covers n ≤ 4600). Target: complete computation through F(5000).
+Systematic computation of Fortunate numbers beyond the OEIS A005235 dataset (which covers n ≤ 4600).
 
+**Target Range**: F(4601) through F(5000)  
 **System**: AMD Ryzen 7 2700 (16 logical cores)  
 **Implementation**: Python 3.12.3 + gmpy2 2.1.5  
-**Algorithm**: Parallel gap-closing with adaptive batch sizing (floor=16)  
-**Optimization**: Firoozbakht (start at p_{n+1})  
-**Status**: F(4601-4606) complete, continuing to F(5000)
+**Algorithm**: Parallel gap-closing with Firoozbakht optimization (start at p\_{n+1})  
+**Status**: F(4601-4606) complete
 
-================================================================================
-COMPUTATION RESULTS (F(4601-4606))
-================================================================================
+## Results (F(4601-4606))
 
-See: `fortunate_4601-5000_data.csv` for raw data.
+Raw data: `fortunate_4601-5000_data.csv`
 
-### Performance Analysis
+| n    | F(n)  | Time    | Workers | Primorial Digits |
+| ---- | ----- | ------- | ------- | ---------------- |
+| 4601 | 56611 | 36m 46s | 15      | 19,113           |
+| 4602 | 62207 | 52m 52s | 15      | 19,117           |
+| 4603 | 54083 | 29m 56s | 15      | 19,122           |
+| 4604 | 83773 | 1h 49m  | 16      | 19,127           |
+| 4605 | 69143 | 1h 9m   | 16      | 19,131           |
+| 4606 | 97813 | 2h 24m  | 16      | 19,136           |
 
-**Scaling Pattern**:
-- F(4603) = 54083 anomalously fast (smaller answer value)
-- F(4604) = 83773 slower (larger gap)
-- F(4605) = 69143 medium speed
-- F(4606) = 97813 slowest so far
-- Pattern: Answer size correlates with computation time more than n index
+## Performance Notes
 
-**Speedup vs Rust (where applicable)**:
-- F(4601) = 8.2x faster (Rust: 5.0h)
-- F(4602) = 6.7x faster (Rust: 5h 52m)
-- F(4603-4606): Beyond OEIS dataset, no Rust baseline
+**Rust Baseline Comparison** (where applicable):
 
-**Worker Efficiency**:
-- Increased from 15 to 16 workers starting with F(4604)
-- All workers consistently active throughout search
-- Batch floor of 16 prevents thrashing on hard composites
+- F(4601): 8.2× faster than Rust (Rust: 5.0h)
+- F(4602): 6.7× faster than Rust (Rust: 5h 52m)
+- F(4603-4606): Beyond OEIS validation range, no baseline
 
-### Primorial Growth Pattern
+**Pattern Observation**: Computation time correlates more strongly with answer magnitude than with index n. For example, F(4603)=54083 completes in 29m 56s, while F(4604)=83773 (larger answer) requires 1h 49m despite only one index increment.
 
-```
-n     | Primorial Digits | Note
-------|------------------|-----
-4601  | 19,113          | composite index
-4602  | 19,117          | composite index (+4 digits)
-4603  | 19,122          | PRIME index (+5 digits)
-4604  | 19,127          | composite index (+5 digits)
-4605  | 19,131          | composite index (+4 digits)
-4606  | 19,136          | composite index (+5 digits)
-```
+## Algorithm
 
-Note: Index 4603 is prime, correctly shows digit increase when new prime 
-factor p_4603 is multiplied into primorial.
+### Gap-Closing Search
 
-================================================================================
-OEIS DATASET STATUS
-================================================================================
+1. **Lower Bound**: Start search at p\_{n+1} (Firoozbakht optimization)
+   - Offsets 2..p_n are all composite (share factors with primorial(n))
+2. **Parallel Testing**: 15-16 worker processes test candidates in batches
+3. **Batch Strategy**: Adaptive sizing based on primality test latency
+4. **Early Stop**: Terminate once first prime found
+5. **Efficiency**: Only wait for batches needed to close remaining range
+
+### Primality Testing
+
+Miller-Rabin deterministic variant: 25 rounds (covers numbers up to ~3.4×10^14)
+
+**Observed Timing**:
+
+- Fast composites: 14-25ms (early witness found)
+- Slow composites: ~28s per candidate
+- Actual primes: ~28s per candidate
+
+### Hard Composite: primorial(4601) + 44207
+
+This composite requires ~28 seconds to reject via Miller-Rabin. Case study documented in `ANOMALY_F4601_HARD_COMPOSITE.md` confirms that 24 rounds would not produce a false positive.
+
+## OEIS Dataset Status
 
 **OEIS A005235** (Fortunate numbers):
-- Covers: F(1) through F(4600) - all validated ✓
-- Beyond: F(4601) and later are unverified but computed
 
-**Ground Truth References**:
+- Validated coverage: F(1) through F(4600)
+- F(4601) and beyond: computed but unverified against external sources
+
+**References**:
+
 - OEIS A005235: https://oeis.org/A005235
 - OEIS A000040 (primes): https://oeis.org/A000040
 
-================================================================================
-METHODOLOGY
-================================================================================
+## Continuation
 
-### Algorithm: Parallel Gap-Closing Search
+Next: F(4607) through F(5000)  
+Expected: ~394 additional results before project completion
 
-1. **Initial Lower Bound**: Start at p_{n+1} (Firoozbakht optimization)
-   - All offsets 2..p_n are composite (share factors with primorial(n))
-   
-2. **Parallel Workers**: 15-16 processes test batches [start; start+batch_size)
-   
-3. **Adaptive Batch Sizing**: 
-   - Grow when batches complete quickly
-   - Shrink when primality tests are slow
-   - Floor of 16 prevents thrashing on variance
-   
-4. **Early Termination**: Stop dispatching once first prime found
-   
-5. **Gap Closing**: Only wait for batches needed to close [min_offset; candidate)
+## Trivia: Primorial Structure and the Guaranteed Gap
 
-### Miller-Rabin Primality Testing
+An interesting structural property of primorial numbers:
 
-- **Rounds**: 25 (deterministic for numbers up to ~3.4×10^14)
-- **Variance**: 14ms to 28s per candidate
-  - Quick composites: 14-25ms (early witnesses)
-  - Hard composites: ~28s (pass 24+ rounds before failing)
-  - Actual primes: ~28s (all 25 rounds required)
+**Guaranteed No-Prime Zone**: Every offset from 2 through p_n added to primorial(n) yields a composite number. This is because primorial(n) = 2 × 3 × 5 × ... × p_n, so any offset k ∈ [2, p_n] will share a prime factor with primorial(n), making primorial(n) ± k composite. This guaranteed gap is why the Firoozbakht optimization begins the search at p_{n+1}—it avoids testing the mathematically impossible offsets. The first candidate Fortunate number must be at least p_{n+1} by necessity.
 
-### Hard Composite Discovery (F(4601))
+**Primorial Twin Primes (OEIS A088256)**: While primorial(n) ± 1 are sometimes both prime, this is extraordinarily rare. A088256 lists primorial numbers where both k-1 and k+1 are prime. Only three are known: primorial(2)=6 (5 and 7), primorial(3)=30 (29 and 31), and primorial(5)=2310 (2309 and 2311). After checking the first 3000 primorials (over 230,000 primorial numbers), no additional terms were found. The sequence is conjectured to be finite, with any further term likely exceeding 10^1,400,000.
 
-**Offset 44207**: primorial(4601) + 44207 is a hard composite
-- Takes ~28 seconds to disprove as prime
-- Passes 24+ Miller-Rabin rounds before final rejection
-- Cost nearly equivalent to testing an actual prime
-- See: `ANOMALY_F4601_HARD_COMPOSITE.md` for detailed case study
-
-================================================================================
-IMPLEMENTATION DETAILS
-================================================================================
-
-**fortunate_v2.py**:
-- Channel-based work distribution (Golang-inspired)
-- Worker ID tracking for debugging parallel execution
-- Shared primorial via multiprocessing.shared_memory
-- Detailed logging of every batch completion
-- Batch size ranges from 16 to 64+ depending on speed
-
-**Key Features**:
-- Incremental computation (can resume from checkpoint)
-- Worker-specific logging with timing
-- Real-time progress tracking
-- Comprehensive error handling
-
-================================================================================
-NEXT STEPS
-================================================================================
-
-- Continue computation: F(4607) through F(5000)
-- Monitor for additional hard composites
-- Document performance anomalies
-- Compare final results against any future OEIS updates
-
-================================================================================
+**Contrast with Fortunate Numbers**: Unlike primorial twin primes (vanishingly rare), Fortunate numbers are guaranteed to exist for every n. Bertrand's postulate ensures a prime exists in every interval (n, 2n), so there is always a Fortunate number F(n) between primorial(n) and 2·primorial(n). This fundamental difference shows why Fortunate number computation is tractable while primorial twin prime searches hit rapidly diminishing returns.
