@@ -104,11 +104,11 @@ See [BENCHMARKS.md](BENCHMARKS.md) for detailed analysis.
 
 ### Architecture Evolution
 
-| Version | Architecture | Key Feature |
-|---------|-------------|-------------|
-| v2 | Batch parallel | Workers search offset ranges for single n |
-| v3 | Queue-based | Workers get assigned primorial indices dynamically |
-| v5 | Queue + viz | Clean separation: workers compute, main orchestrates, print reports |
+| Version | Architecture   | Key Feature                                                         |
+| ------- | -------------- | ------------------------------------------------------------------- |
+| v2      | Batch parallel | Workers search offset ranges for single n                           |
+| v3      | Queue-based    | Workers get assigned primorial indices dynamically                  |
+| v5      | Queue + viz    | Clean separation: workers compute, main orchestrates, print reports |
 
 ### v5 Architecture (Recommended)
 
@@ -124,11 +124,13 @@ Main Loop (orchestrator)
 ```
 
 **Clean separation of concerns**:
+
 - **Workers**: Simple - receive task, compute F(n), return result
 - **Main loop**: Single source of truth - assigns tasks, tracks state
 - **Print**: Reports events with accurate, race-free state
 
 **Output formats**:
+
 - Stdout: `7.12s W08 F(505)=4231 →510`
 - Markdown: Full state table showing all worker assignments per result
 
