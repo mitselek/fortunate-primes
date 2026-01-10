@@ -10,13 +10,16 @@ Usage:
     python fabricate_checkpoint.py path/to/v2_F4610.log --apply  # Also copy to expedition_checkpoint.json
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
-import gmpy2
+import gmpy2  # type: ignore[import-untyped]
 
 
 def compute_nth_prime(n: int) -> int:
@@ -25,11 +28,11 @@ def compute_nth_prime(n: int) -> int:
         return 2
     p = 2
     for _ in range(n - 1):
-        p = int(gmpy2.next_prime(p))
+        p = int(gmpy2.next_prime(p))  # type: ignore[no-untyped-call]
     return p
 
 
-def parse_log(log_path: Path) -> dict:
+def parse_log(log_path: Path) -> dict[str, Any]:
     """Parse v2 log to extract current state."""
     with open(log_path) as f:
         lines = f.readlines()
@@ -80,7 +83,7 @@ def parse_log(log_path: Path) -> dict:
     }
 
 
-def create_checkpoint(n: int, confirmed_up_to: int, elapsed_seconds: float) -> dict:
+def create_checkpoint(n: int, confirmed_up_to: int, elapsed_seconds: float) -> dict[str, Any]:
     """Create expedition checkpoint dict."""
     p_n_plus_1 = compute_nth_prime(n + 1)
     
