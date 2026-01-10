@@ -1,13 +1,13 @@
 """
-Fortunate Numbers Calculator - Python + gmpy2 implementation v5.
+Fortunate Numbers Calculator - "Marathon" edition.
 
-Clean separation of concerns:
-- Workers: Compute F(n) on demand (receive task, return result)
-- Main loop: Orchestrates - assigns tasks, tracks state, single source of truth
-- Print: Receives complete events - no shared state races
+Designed for long-running, stable computations with:
+- Clean worker/orchestrator separation
+- Per-worker task queues (no shared state)
+- Authoritative main-loop state tracking
+- Real-time markdown visualization of worker assignments
 
-Each worker has its own task queue. Main loop controls all assignments.
-No shared state between workers. Main loop is authoritative.
+Built for endurance: hours/days of computation with observable progress.
 
 References:
 - OEIS A005235: https://oeis.org/A005235
@@ -304,10 +304,10 @@ def compute_fortunates(
 def main() -> None:
     """Command-line interface."""
     if len(sys.argv) < 2:
-        print("Usage: python fortunate_v5.py <start_n> [end_n] [--md output.md]")
-        print("Example: python fortunate_v5.py 500")
-        print("         python fortunate_v5.py 500 510")
-        print("         python fortunate_v5.py 500 510 --md benchmark.md")
+        print("Usage: python fortunate_marathon.py <start_n> [end_n] [--md output.md]")
+        print("Example: python fortunate_marathon.py 500")
+        print("         python fortunate_marathon.py 500 510")
+        print("         python fortunate_marathon.py 500 510 --md benchmark.md")
         sys.exit(1)
     
     # Parse arguments
@@ -326,7 +326,7 @@ def main() -> None:
     
     # Default md_path if not specified
     if md_path is None:
-        md_path = f"benchmark_v5_{start_n}-{end_n}.md"
+        md_path = f"marathon_{start_n}-{end_n}.md"
     
     print(f"Computing F({start_n})..F({end_n}) with {cpu_count()} workers")
     print(f"Markdown output: {md_path}\n")

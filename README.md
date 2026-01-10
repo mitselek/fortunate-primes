@@ -32,9 +32,9 @@ We compare four implementations across multiple dimensions:
 
 ## Implementations
 
-| Implementation                          | Version | Status        | Language     | Strategy                        | Performance (F(500)) |
-| --------------------------------------- | ------- | ------------- | ------------ | ------------------------------- | -------------------- |
-| [Python](implementations/python-gmpy2/) | v5      | ✅ Production | Python 3.12  | Queue-based + visualization     | **1.25s (fastest!)** |
+| Implementation                          | Version  | Status        | Language     | Strategy                        | Performance (F(500)) |
+| --------------------------------------- | -------- | ------------- | ------------ | ------------------------------- | -------------------- |
+| [Python](implementations/python-gmpy2/) | marathon | ✅ Production | Python 3.12  | Queue-based + visualization     | **1.25s (fastest!)** |
 | [Python](implementations/python-gmpy2/) | v3      | ✅ Legacy     | Python 3.12  | Queue-based worker assignment   | 1.25s                |
 | [Python](implementations/python-gmpy2/) | v2      | ✅ Legacy     | Python 3.12  | Batch-based with early exit     | 2.65s                |
 | [PARI/GP](implementations/pari-gp/)     | -       | ✅ Production | PARI/GP 2.15 | Native thread parallelism       | 6.8s                 |
@@ -43,7 +43,7 @@ We compare four implementations across multiple dimensions:
 
 ### Quick Comparison
 
-**🏆 Python + gmpy2 v5 (Winner!)**
+**🏆 Python + gmpy2 Marathon (Winner!)**
 
 - ✅ **Fastest implementation**: 9-22x faster than Rust, 2-5x faster than PARI/GP
 - ✅ **Clean architecture**: Workers compute, main orchestrates, print reports (no race conditions)
@@ -60,7 +60,7 @@ We compare four implementations across multiple dimensions:
 
 - v3: Queue-based, minimal output (36% faster than v2 for ranges)
 - v2: Batch-based with early termination (good for single large n)
-- 📊 **Status**: Superseded by v5, kept for comparison
+- 📊 **Status**: Superseded by marathon, kept for comparison
 
 **PARI/GP (Runner-up)**
 
@@ -104,7 +104,7 @@ gp -q fortunate.gp
 cd implementations/python-gmpy2
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-python fortunate_v5.py 500 510 --md output.md
+python fortunate_marathon.py 500 510 --md output.md
 
 # Node.js + TypeScript (when implemented)
 cd implementations/node-ts

@@ -49,9 +49,9 @@ brew install python gmp
 # Activate environment
 source venv/bin/activate
 
-# Run calculator (v5 - queue-based load balancing with visualization)
-python fortunate_v5.py 500 510                    # Calculate F(500)..F(510)
-python fortunate_v5.py 500 510 --md output.md     # With markdown state table
+# Run calculator (marathon - long-running with visualization)
+python fortunate_marathon.py 500 510                    # Calculate F(500)..F(510)
+python fortunate_marathon.py 500 510 --md output.md     # With markdown state table
 
 # Legacy versions
 python fortunate_v3.py 500 510    # v3 - queue-based, minimal output
@@ -100,17 +100,17 @@ See [BENCHMARKS.md](BENCHMARKS.md) for detailed analysis.
 
 ## Implementation Details
 
-**Current best**: `fortunate_v5.py` - Queue-based load balancing with visualization
+**Current best**: `fortunate_marathon.py` - Queue-based load balancing with visualization
 
 ### Architecture Evolution
 
-| Version | Architecture   | Key Feature                                                         |
-| ------- | -------------- | ------------------------------------------------------------------- |
-| v2      | Batch parallel | Workers search offset ranges for single n                           |
-| v3      | Queue-based    | Workers get assigned primorial indices dynamically                  |
-| v5      | Queue + viz    | Clean separation: workers compute, main orchestrates, print reports |
+| Version  | Architecture   | Key Feature                                                         |
+| -------- | -------------- | ------------------------------------------------------------------- |
+| v2       | Batch parallel | Workers search offset ranges for single n                           |
+| v3       | Queue-based    | Workers get assigned primorial indices dynamically                  |
+| marathon | Queue + viz    | Clean separation: workers compute, main orchestrates, print reports |
 
-### v5 Architecture (Recommended)
+### Marathon Architecture (Recommended)
 
 ```text
 Main Loop (orchestrator)
