@@ -31,7 +31,7 @@ References:
 - Fortune's conjecture: All Fortunate numbers are prime
 """
 
-import gmpy2  # type: ignore[import-untyped]
+import gmpy2
 from multiprocessing import Process, Queue, cpu_count
 from dataclasses import dataclass, asdict
 from typing import Optional, Dict, List, Tuple, Deque, Any
@@ -155,7 +155,7 @@ def compute_nth_prime(n: int) -> int:
         return 2
     p = 2
     for _ in range(n - 1):
-        p = int(gmpy2.next_prime(p))  # type: ignore[no-untyped-call]
+        p = int(gmpy2.next_prime(p))
     return p
 
 
@@ -167,7 +167,7 @@ def compute_primorial(n: int) -> int:
     p = 2
     for _ in range(n):
         result *= p
-        p = int(gmpy2.next_prime(p))  # type: ignore[no-untyped-call]
+        p = int(gmpy2.next_prime(p))
     return result
 
 
@@ -319,7 +319,7 @@ def worker_process(
         found_m: Optional[int] = None
         
         for m in range(start, end):
-            if gmpy2.is_prime(pn + m, 25):  # type: ignore[no-untyped-call]
+            if gmpy2.is_prime(pn + m, 25):
                 found_m = m
                 break
         

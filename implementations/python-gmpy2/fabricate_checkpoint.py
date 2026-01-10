@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import gmpy2  # type: ignore[import-untyped]
+import gmpy2
 
 
 def compute_nth_prime(n: int) -> int:
@@ -28,7 +28,7 @@ def compute_nth_prime(n: int) -> int:
         return 2
     p = 2
     for _ in range(n - 1):
-        p = int(gmpy2.next_prime(p))  # type: ignore[no-untyped-call]
+        p = int(gmpy2.next_prime(p))
     return p
 
 
