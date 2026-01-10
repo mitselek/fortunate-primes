@@ -34,12 +34,12 @@ We compare four implementations across multiple dimensions:
 
 | Implementation                          | Version  | Status        | Language     | Strategy                        | Performance (F(500)) |
 | --------------------------------------- | -------- | ------------- | ------------ | ------------------------------- | -------------------- |
-| [Python](implementations/python-gmpy2/) | marathon | ✅ Production | Python 3.12  | Queue-based + visualization     | **1.25s (fastest!)** |
-| [Python](implementations/python-gmpy2/) | v3      | ✅ Legacy     | Python 3.12  | Queue-based worker assignment   | 1.25s                |
-| [Python](implementations/python-gmpy2/) | v2      | ✅ Legacy     | Python 3.12  | Batch-based with early exit     | 2.65s                |
-| [PARI/GP](implementations/pari-gp/)     | -       | ✅ Production | PARI/GP 2.15 | Native thread parallelism       | 6.8s                 |
-| [Rust](implementations/rust/)           | -       | ✅ Production | Rust 1.92.0  | Orchestration + PARI/GP workers | 11.3s                |
-| [Node.js](implementations/node-ts/)     | -       | 🚧 Planned    | TypeScript   | Native BigInt or WASM+GMP       | Not implemented      |
+| [Python](implementations/python-gmpy2/) | marathon | ✅ Production | Python 3.12  | Queue-based + visualization     | **1.25s**            |
+| [Python](implementations/python-gmpy2/) | v3       | ✅ Legacy     | Python 3.12  | Queue-based worker assignment   | 1.25s                |
+| [Python](implementations/python-gmpy2/) | v2       | ✅ Legacy     | Python 3.12  | Batch-based with early exit     | 2.65s                |
+| [PARI/GP](implementations/pari-gp/)     | -        | ✅ Production | PARI/GP 2.15 | Native thread parallelism       | 6.8s                 |
+| [Rust](implementations/rust/)           | -        | ✅ Production | Rust 1.92.0  | Orchestration + PARI/GP workers | 11.3s                |
+| [Node.js](implementations/node-ts/)     | -        | 🚧 Planned    | TypeScript   | Native BigInt or WASM+GMP       | Not implemented      |
 
 ### Quick Comparison
 
