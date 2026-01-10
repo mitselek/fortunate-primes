@@ -32,8 +32,7 @@ References:
 """
 
 import gmpy2
-from multiprocessing import Process, Queue, cpu_count, Manager
-from multiprocessing.managers import DictProxy
+from multiprocessing import Process, Queue, cpu_count
 from dataclasses import dataclass, asdict
 from typing import Optional, Dict, List, Tuple, Deque, Any
 from collections import deque
@@ -283,20 +282,28 @@ def worker_process(
     worker_id: int,
     task_queue: "Queue[Optional[Tuple[int, int, int, int]]]",
     result_queue: "Queue[Tuple[int, int, int, int, Optional[int], float]]",
-    completed_n: "DictProxy[int, bool]",
 ) -> None:
     """
     Worker: receives (worker_id, n, start, end), tests batch, returns result.
     
     Result tuple: (worker_id, n, start, end, found_m, elapsed)
     
-    Checks completed_n every iteration to abort early if n is already solved.
+    Workers just do the primality tests - the orchestrator handles
+    early termination by not assigning more work for completed n values.
     """
+    # Ignore signals in workers - only main process handles shutdown
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    
     # Cache primorials to avoid recomputation
     primorial_cache: Dict[int, int] = {}
     
     while True:
-        task = task_queue.get()
+        try:
+            task = task_queue.get(timeout=2.0)
+        except Exception:
+            continue  # Queue may be closing or timeout
+        
         if task is None:  # Poison pill
             break
         
@@ -307,21 +314,21 @@ def worker_process(
             primorial_cache[n] = compute_primorial(n)
         pn = primorial_cache[n]
         
-        # Test batch
+        # Test batch - do the actual work!
         start_time = time.time()
         found_m: Optional[int] = None
         
         for m in range(start, end):
-            # Early termination: check if n is already solved
-            if n in completed_n:
-                break
-            
             if gmpy2.is_prime(pn + m, 25):
                 found_m = m
                 break
         
         elapsed = time.time() - start_time
-        result_queue.put((wid, n, start, end, found_m, elapsed))
+        
+        try:
+            result_queue.put((wid, n, start, end, found_m, elapsed))
+        except (BrokenPipeError, ConnectionResetError, EOFError):
+            break  # Shutdown in progress
 
 
 # =============================================================================
@@ -472,13 +479,6 @@ class Expedition:
         self.start_time = time.time()
         self.shutdown_requested = False
         
-        # Shared state for early termination
-        self.manager = Manager()
-        self.completed_n: "DictProxy[int, bool]" = self.manager.dict()
-        # Pre-populate with already completed results (for resume)
-        for n in self.state.results:
-            self.completed_n[n] = True
-        
         # Queues
         self.task_queue: "Queue[Optional[Tuple[int, int, int, int]]]" = Queue()
         self.result_queue: "Queue[Tuple[int, int, int, int, Optional[int], float]]" = Queue()
@@ -513,7 +513,8 @@ class Expedition:
     def _setup_signal_handlers(self) -> None:
         """Install signal handlers for graceful shutdown."""
         def handle_signal(signum: int, frame: Any) -> None:
-            print(f"\n[Signal {signum}] Saving checkpoint and shutting down...")
+            if not self.shutdown_requested:  # Only print once
+                print(f"\n[Signal {signum}] Saving checkpoint and shutting down...")
             self.shutdown_requested = True
         
         signal.signal(signal.SIGINT, handle_signal)
@@ -524,7 +525,7 @@ class Expedition:
         for i in range(self.num_workers):
             p = Process(
                 target=worker_process,
-                args=(i, self.task_queue, self.result_queue, self.completed_n)
+                args=(i, self.task_queue, self.result_queue)
             )
             p.start()
             self.workers.append(p)
@@ -652,9 +653,6 @@ class Expedition:
         search.pending_ranges = []  # Clean up stale metadata
         search.completed_up_to = search.next_offset  # Mark all as done
         self.state.results[n] = f_n
-        
-        # Signal workers to stop working on this n
-        self.completed_n[n] = True
         
         elapsed = time.time() - self.start_time + self.state.total_elapsed
         self.state.result_times[n] = elapsed
