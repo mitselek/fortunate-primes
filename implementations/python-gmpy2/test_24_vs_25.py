@@ -6,7 +6,7 @@ Compare Miller-Rabin rounds: test the same composite with 24 vs 25 rounds
 import sys
 sys.set_int_max_str_digits(10000)
 
-import gmpy2  # type: ignore
+import gmpy2
 import time
 
 n = 4601
@@ -20,7 +20,7 @@ pn = 1
 p = 2
 for _ in range(n):
     pn *= p
-    p = int(gmpy2.next_prime(p))  # type: ignore[attr-defined]
+    p = int(gmpy2.next_prime(p))
 prim_time = time.time() - start
 
 candidate = pn + offset
@@ -28,7 +28,7 @@ candidate = pn + offset
 # Test with 24 rounds
 print("\n=== Testing with 24 rounds ===")
 start = time.time()
-result_24 = gmpy2.is_prime(candidate, 24)  # type: ignore[attr-defined]
+result_24 = gmpy2.is_prime(candidate, 24)
 time_24 = time.time() - start
 print(f"Result: {'PRIME' if result_24 else 'COMPOSITE'}")
 print(f"Time: {time_24:.2f}s")
@@ -36,7 +36,7 @@ print(f"Time: {time_24:.2f}s")
 # Test with 25 rounds
 print("\n=== Testing with 25 rounds ===")
 start = time.time()
-result_25 = gmpy2.is_prime(candidate, 25)  # type: ignore[attr-defined]
+result_25 = gmpy2.is_prime(candidate, 25)
 time_25 = time.time() - start
 print(f"Result: {'PRIME' if result_25 else 'COMPOSITE'}")
 print(f"Time: {time_25:.2f}s")

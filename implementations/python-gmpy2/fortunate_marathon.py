@@ -14,7 +14,7 @@ References:
 - Fortune's conjecture: All Fortunate numbers are prime
 """
 
-import gmpy2  # type: ignore
+import gmpy2
 from multiprocessing import Process, Queue, cpu_count
 from typing import Tuple, Optional, Dict, List
 import sys
@@ -45,7 +45,7 @@ def compute_primorial_oeis(n: int) -> int:
     p = 2
     for _ in range(n):
         result *= p
-        p = int(gmpy2.next_prime(p))  # type: ignore[attr-defined]
+        p = int(gmpy2.next_prime(p))
     return result
 
 
@@ -53,7 +53,7 @@ def compute_nth_prime(n: int) -> int:
     """Get the nth prime (1-indexed)."""
     p = 2
     for _ in range(n - 1):
-        p = int(gmpy2.next_prime(p))  # type: ignore[attr-defined]
+        p = int(gmpy2.next_prime(p))
     return p
 
 
@@ -65,7 +65,7 @@ def compute_fortunate(n: int) -> int:
     p_n_plus_1 = compute_nth_prime(n + 1)
     
     for offset in range(p_n_plus_1, 1000000):
-        if gmpy2.is_prime(pn + offset, 25):  # type: ignore[attr-defined]
+        if gmpy2.is_prime(pn + offset, 25):
             return offset
     
     raise RuntimeError(f"No Fortunate number found for F({n}) within 1M search range")

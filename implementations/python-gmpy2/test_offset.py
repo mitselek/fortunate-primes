@@ -6,7 +6,7 @@ Test the specific offset that took 22.59s: F(4601) at offset 44207
 import sys
 sys.set_int_max_str_digits(10000)  # Allow large integer string conversion
 
-import gmpy2  # type: ignore
+import gmpy2
 import time
 
 n = 4601
@@ -20,7 +20,7 @@ pn = 1
 p = 2
 for _ in range(n):
     pn *= p
-    p = int(gmpy2.next_prime(p))  # type: ignore[attr-defined]
+    p = int(gmpy2.next_prime(p))
 prim_time = time.time() - start
 print(f"Primorial computed in {prim_time:.2f}s")
 
@@ -29,7 +29,7 @@ candidate = pn + offset
 print(f"Testing if primorial({n}) + {offset} is prime...")
 
 start = time.time()
-result = gmpy2.is_prime(candidate, 25)  # type: ignore[attr-defined]
+result = gmpy2.is_prime(candidate, 25)
 test_time = time.time() - start
 
 print(f"Result: {'PRIME' if result else 'COMPOSITE'}")

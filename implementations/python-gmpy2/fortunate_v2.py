@@ -17,7 +17,7 @@ References:
 - gmpy2 docs: https://gmpy2.readthedocs.io/
 """
 
-import gmpy2  # type: ignore
+import gmpy2
 from multiprocessing import Process, Queue, cpu_count
 from typing import Tuple, Optional, Dict, List
 import sys
@@ -41,12 +41,12 @@ def test_batch(n: int, start: int, batch_size: int) -> Tuple[int, int, Optional[
     p: int = 2
     for _ in range(n):
         pn *= p
-        p = int(gmpy2.next_prime(p))  # type: ignore[attr-defined]
+        p = int(gmpy2.next_prime(p))
     
     # Test candidates in this batch
     end = start + batch_size
     for m in range(start, end):
-        if gmpy2.is_prime(pn + m, 25):  # type: ignore[attr-defined]
+        if gmpy2.is_prime(pn + m, 25):
             return (start, end, m)
     
     return (start, end, None)
@@ -94,7 +94,7 @@ def compute_min_offset(n: int) -> int:
     """
     p = 2
     for _ in range(n):
-        p = int(gmpy2.next_prime(p))  # type: ignore[attr-defined]
+        p = int(gmpy2.next_prime(p))
     return p  # This is p_{n+1}
 
 
@@ -286,7 +286,8 @@ def run_search(
         
         # Check if done
         if state.is_done():
-            return state.best_candidate  # type: ignore
+            assert state.best_candidate is not None  # Guaranteed by is_done()
+            return state.best_candidate
         
         # Dispatch more work if needed
         if state.should_dispatch():

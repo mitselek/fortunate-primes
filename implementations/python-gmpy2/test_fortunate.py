@@ -5,7 +5,7 @@ Validates against OEIS A005235: https://oeis.org/A005235
 Fortune's conjecture: All Fortunate numbers are prime.
 """
 
-import pytest  # type: ignore
+import pytest
 from pathlib import Path
 from typing import Dict
 
@@ -48,12 +48,12 @@ def test_fortunate_20() -> None:
 
 def test_fortunate_result_is_prime() -> None:
     """Fortune's conjecture: All Fortunate numbers must be prime"""
-    import gmpy2  # type: ignore
+    import gmpy2
     from fortunate import fortunate_batch
 
     for n in [5, 10, 20]:
         fn = fortunate_batch(n, batch_size=100, verbose=False)
-        assert gmpy2.is_prime(fn), f"F({n})={fn} is not prime!"  # type: ignore[attr-defined]
+        assert gmpy2.is_prime(fn), f"F({n})={fn} is not prime!"
 
 
 def test_fortunate_sequential() -> None:
@@ -66,7 +66,7 @@ def test_fortunate_sequential() -> None:
     assert result1 == result2, "Results should be deterministic"
 
 
-@pytest.mark.parametrize("n,expected", [  # type: ignore[misc]
+@pytest.mark.parametrize("n,expected", [
     (1, 3), (2, 5), (3, 7), (4, 13), (5, 23),
     (10, 61), (15, 107), (20, 103), (25, 103),
     (30, 191), (40, 191), (50, 293), (100, 641),
@@ -79,7 +79,7 @@ def test_oeis_validation(n: int, expected: int) -> None:
     assert result == expected, f"F({n}): expected {expected}, got {result}"
 
 
-@pytest.mark.skipif(not FORTUNATE_NUMBERS, reason="OEIS reference data not available")  # type: ignore[misc]
+@pytest.mark.skipif(not FORTUNATE_NUMBERS, reason="OEIS reference data not available")
 def test_oeis_comprehensive() -> None:
     """Comprehensive validation against all OEIS reference values (up to n=100)"""
     from fortunate import fortunate_batch
@@ -93,4 +93,4 @@ def test_oeis_comprehensive() -> None:
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v"])  # type: ignore[attr-defined]
+    pytest.main([__file__, "-v"])

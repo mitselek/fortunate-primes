@@ -31,7 +31,7 @@ References:
 - Fortune's conjecture: All Fortunate numbers are prime
 """
 
-import gmpy2  # type: ignore
+import gmpy2
 from multiprocessing import Process, Queue, cpu_count, Manager
 from multiprocessing.managers import DictProxy
 from dataclasses import dataclass, asdict
