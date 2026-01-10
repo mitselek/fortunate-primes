@@ -72,13 +72,11 @@ class SearchState:
     completed: bool = False
     
     def to_dict(self) -> Dict[str, Any]:
-        d = asdict(self)
-        # pending_ranges needs special handling for JSON
-        d["pending_ranges"] = list(self.pending_ranges)
-        return d
+        return asdict(self)
     
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "SearchState":
+        # JSON deserializes tuples as lists - convert back
         d["pending_ranges"] = [tuple(r) for r in d.get("pending_ranges", [])]
         return cls(**d)
 
@@ -477,6 +475,7 @@ class Expedition:
             i: None for i in range(self.num_workers)
         }
         self.start_time = time.time()
+        self.baseline_elapsed = self.state.total_elapsed  # Time from previous sessions
         self.shutdown_requested = False
         
         # Queues
@@ -543,7 +542,9 @@ class Expedition:
         """
         Get next (n, start, end) task to assign.
         
-        Priority: lowest incomplete n with available offsets.
+        Priority:
+        1. Re-dispatch orphaned ranges (from resume) - first in pending_ranges
+        2. Assign new work from next_offset
         """
         batch_size = self.batch_sizer.get_batch_size()
         
@@ -558,9 +559,24 @@ class Expedition:
             # Check if we have a candidate and all prior offsets assigned
             if search.best_candidate is not None:
                 if search.next_offset >= search.best_candidate:
-                    continue  # All necessary ranges assigned, wait for completion
+                    # All new ranges assigned - but check for orphaned ranges
+                    if not search.pending_ranges:
+                        continue  # Nothing to dispatch
             
-            # Assign next batch
+            # Priority 1: Re-dispatch orphaned ranges from previous run
+            # These are ranges that were in-flight when process died
+            # We pop from front (oldest first) since they're closer to completed_up_to
+            if search.pending_ranges:
+                # Check if this is an orphaned range (no worker assigned to it)
+                orphan = self._find_orphaned_range(n, search.pending_ranges)
+                if orphan:
+                    return (n, orphan[0], orphan[1])
+            
+            # Priority 2: Assign new batch from next_offset
+            if search.best_candidate is not None:
+                if search.next_offset >= search.best_candidate:
+                    continue  # All necessary ranges assigned
+            
             start = search.next_offset
             end = start + batch_size
             search.next_offset = end
@@ -569,6 +585,26 @@ class Expedition:
             search.pending_ranges.append((start, end))
             
             return (n, start, end)
+        
+        return None
+    
+    def _find_orphaned_range(
+        self, n: int, pending_ranges: List[Tuple[int, int]]
+    ) -> Optional[Tuple[int, int]]:
+        """
+        Find a pending range that has no worker assigned to it.
+        These are orphaned from a previous run and need re-dispatch.
+        """
+        # Get all ranges currently assigned to workers
+        worker_ranges: set[Tuple[int, int]] = set()
+        for task in self.worker_tasks.values():
+            if task is not None and task.n == n:
+                worker_ranges.add((task.start_offset, task.end_offset))
+        
+        # Find first pending range not in worker_ranges
+        for r in pending_ranges:
+            if r not in worker_ranges:
+                return r
         
         return None
     
@@ -645,6 +681,10 @@ class Expedition:
         if search.best_candidate is not None:
             if search.completed_up_to >= search.best_candidate:
                 self._finalize_result(n, search.best_candidate, worker_id)
+                return  # Already saved in _finalize_result
+        
+        # Live bookkeeping: save after every batch for power-loss recovery
+        self._save_checkpoint()
     
     def _finalize_result(self, n: int, f_n: int, worker_id: int) -> None:
         """Finalize and record a result."""
@@ -654,7 +694,8 @@ class Expedition:
         search.completed_up_to = search.next_offset  # Mark all as done
         self.state.results[n] = f_n
         
-        elapsed = time.time() - self.start_time + self.state.total_elapsed
+        # Total elapsed: baseline from checkpoint + current session time
+        elapsed = self.baseline_elapsed + (time.time() - self.start_time)
         self.state.result_times[n] = elapsed
         
         remaining = (self.end_n - self.start_n + 1) - len(self.state.results)
@@ -683,7 +724,8 @@ class Expedition:
         """Save current state to checkpoint."""
         self.state.batch_times = self.batch_sizer.get_times_list()
         self.state.current_batch_size = self.batch_sizer.get_batch_size()
-        self.state.total_elapsed = time.time() - self.start_time + self.state.total_elapsed
+        # Compute total elapsed: baseline from checkpoint + current session time
+        self.state.total_elapsed = self.baseline_elapsed + (time.time() - self.start_time)
         self.checkpoint_mgr.save(self.state)
     
     def _all_complete(self) -> bool:
@@ -716,16 +758,7 @@ class Expedition:
                 except Exception:
                     continue
             
-            # Wait for in-flight work if shutting down
-            if self.shutdown_requested:
-                print("Waiting for in-flight batches...")
-                timeout = time.time() + 30  # 30 second timeout
-                while self._any_workers_busy() and time.time() < timeout:
-                    try:
-                        result = self.result_queue.get(timeout=1.0)
-                        self._process_result(*result)
-                    except Exception:
-                        continue
+            # No drain on shutdown - pending_ranges will be re-dispatched on resume
         
         finally:
             self._save_checkpoint()
@@ -733,7 +766,11 @@ class Expedition:
             
             # Finalize markdown log
             if self.logger:
-                total_elapsed = time.time() - self.start_time + self.state.total_elapsed
+                # Use time of last result found if complete, else current elapsed time
+                if self._all_complete() and self.state.result_times:
+                    total_elapsed = max(self.state.result_times.values())
+                else:
+                    total_elapsed = self.baseline_elapsed + (time.time() - self.start_time)
                 self.logger.log_summary(self.state.results, total_elapsed)
                 self.logger.close()
             
