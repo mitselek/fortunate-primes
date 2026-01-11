@@ -455,9 +455,14 @@ class Expedition:
                 print(f"Resumed from checkpoint: {len(loaded.results)} results completed")
                 actually_resuming = True
             else:
-                print("Checkpoint range mismatch, starting fresh")
-                self.state = self._create_initial_state()
-                self.batch_sizer = BatchSizer()
+                # Range mismatch - terminate instead of starting over
+                print(f"[ERROR] Checkpoint range mismatch!")
+                print(f"  Checkpoint: n={loaded.start_n}..{loaded.end_n}")
+                print(f"  Requested:  n={start_n}..{end_n}")
+                print(f"\nTo resume checkpoint: python fortunate_expedition.py {loaded.start_n} {loaded.end_n} --resume")
+                print(f"To start fresh:       python fortunate_expedition.py {start_n} {end_n}")
+                print(f"To delete checkpoint: rm {self.checkpoint_mgr.filepath}")
+                sys.exit(1)
         else:
             self.state = self._create_initial_state()
             self.batch_sizer = BatchSizer()
