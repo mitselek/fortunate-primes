@@ -57,6 +57,5 @@ package-lock.json
 
 # Local testing
 test_output/
-results/
 benchmarks/results/*.log
 fortunate_checkpoint/
