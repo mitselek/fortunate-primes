@@ -59,5 +59,4 @@ package-lock.json
 test_output/
 benchmarks/results/*.log
 fortunate_checkpoint/
-implementations/python-gmpy2/expedition_checkpoint.json
-implementations/python-gmpy2/expedition_checkpoint.json
+expedition_checkpoint.json
